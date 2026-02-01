@@ -39,7 +39,6 @@
     </div>
   </div>
 </template>
-
 <script setup>
 import { ref } from "vue";
 import gsap from "gsap";
@@ -47,13 +46,10 @@ import { useRouter } from "vue-router";
 
 const router = useRouter();
 const centralRef = ref(null);
-let audio = null;
-const tocando = ref(false);
 
 function onCentralClick() {
   const centralEl = centralRef.value;
   const img = centralEl.querySelector("img");
-
   const rect = img.getBoundingClientRect();
 
   const overlay = document.getElementById("transition-overlay");
@@ -71,30 +67,29 @@ function onCentralClick() {
 
   overlay.style.display = "flex";
 
-  const tl = gsap.timeline({
-    onComplete: () => {
-      router.push("/aquele-que-sonhou");
-    },
-  });
-
-  tl.to(overlay, {
+  gsap.timeline({
+    onComplete: () => router.push("/aquele-que-sonhou"),
+  })
+  .to(overlay, {
     backgroundColor: "#000",
     duration: 0.4,
     ease: "power1.out",
-  });
-
-  tl.to(overlayImg, {
-    top: "80%",
-    left: "50%",
-    xPercent: -50,
-    yPercent: -50,
-    width: 180,
-    scale: 2.0,
-    height: 180,
-    duration: 1.3,
-    ease: "power1.inOut",
-  }, "<");
-
+  })
+  .to(
+    overlayImg,
+    {
+      top: "80%",
+      left: "50%",
+      xPercent: -50,
+      yPercent: -50,
+      width: 180,
+      height: 180,
+      scale: 2,
+      duration: 1.3,
+      ease: "power1.inOut",
+    },
+    "<"
+  );
 }
 
 function onA1Click(event) {
@@ -119,7 +114,6 @@ function transicionarPara(url, imgEl) {
   }
 
   const rect = imgEl.getBoundingClientRect();
-
   overlayImg.src = imgEl.src;
 
   gsap.set(overlayImg, {
@@ -155,7 +149,6 @@ function transicionarPara(url, imgEl) {
   );
 }
 </script>
-
 <style scoped>
 .orbita {
   position: relative;
@@ -166,6 +159,7 @@ function transicionarPara(url, imgEl) {
   justify-content: center;
 }
 
+/* CENTRAL */
 .central {
   width: 260px;
   height: 260px;
@@ -189,7 +183,7 @@ function transicionarPara(url, imgEl) {
   border-radius: 50%;
 }
 
-/* ===== ANÉIS ===== */
+/* ANÉIS */
 .anel {
   position: absolute;
   border: 2px solid rgba(0, 0, 0, 0.25);
@@ -225,7 +219,6 @@ function transicionarPara(url, imgEl) {
   z-index: 20;
 }
 
-/* AVATAR */
 .avatar {
   width: 56px;
   height: 56px;
@@ -239,13 +232,47 @@ function transicionarPara(url, imgEl) {
   box-shadow: 0 0 0 4px rgba(199, 164, 58, 0.5);
 }
 
-/* ===== ANIMAÇÃO ===== */
+/* ANIMAÇÃO */
 @keyframes girar {
   from {
     transform: rotate(0deg);
   }
   to {
     transform: rotate(360deg);
+  }
+}
+
+/* MOBILE ONLY */
+@media (max-width: 600px) {
+  .orbita {
+    width: 360px;
+    height: 360px;
+    transform: scale(0.75);
+  }
+
+  .central {
+    width: 180px;
+    height: 180px;
+  }
+
+  .a1 {
+    width: 240px;
+    height: 240px;
+  }
+
+  .a2 {
+    width: 300px;
+    height: 300px;
+  }
+
+  .a3 {
+    width: 340px;
+    height: 340px;
+  }
+
+  .avatar {
+    width: 48px;
+    height: 48px;
   }
 }
 </style>

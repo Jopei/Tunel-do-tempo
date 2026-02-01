@@ -551,4 +551,50 @@ button:disabled {
   opacity: 0.7;
   cursor: not-allowed;
 }
+
+/* ========================= */
+/* MOBILE ONLY – ADAPTACAO */
+/* ========================= */
+@media (max-width: 600px) {
+  .cadastrar-historia-page {
+    align-items: flex-start;
+    padding: 16px 0;
+  }
+
+  .card {
+    width: 100%;
+    margin-top: 0;
+    padding: 24px;
+    border-radius: 20px 20px 0 0;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .uploads {
+    grid-template-columns: 1fr;
+  }
+
+  .usuarios-checkbox {
+    flex-direction: column;
+  }
+
+  .checkbox-item {
+    max-width: 100%;
+  }
+
+  .preview img,
+  .preview video {
+    width: 100px;
+  }
+
+  button {
+    width: 100%;
+  }
+  .editor {
+    overflow-x: hidden;
+  }
+}
+
 </style>

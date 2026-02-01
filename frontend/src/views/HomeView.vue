@@ -35,16 +35,12 @@
     </div>
   </section>
 </template>
-
 <script setup>
-import { ref } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import { useRouter } from "vue-router";
-import { computed } from "vue";
 import AppHeader from "@/components/layout/AppHeader.vue";
 import FeaturedVideoCard from "@/components/video/FeaturedVideoCard.vue";
-import { onMounted, onBeforeUnmount } from "vue";
-
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -86,10 +82,7 @@ const fotoPerfilUrl = computed(() => {
   return `${import.meta.env.VITE_API_BASE_URL}/fotos/${authStore.usuario.foto.uuid}`;
 });
 </script>
-
-
 <style scoped>
-/* ===== FUNDO ===== */
 .home-view {
   min-height: 100vh;
   background-image: url("/backgrounds/home-bg.svg");
@@ -99,7 +92,6 @@ const fotoPerfilUrl = computed(() => {
   justify-content: center;
 }
 
-/* ===== CONTEÚDO ===== */
 .hero-content {
   width: 100%;
   max-width: 1200px;
@@ -109,7 +101,6 @@ const fotoPerfilUrl = computed(() => {
   min-height: 100vh;
 }
 
-/* ===== TEXTO ===== */
 h1 {
   font-size: 64px;
   font-weight: 700;
@@ -156,8 +147,6 @@ h1 {
   color: #c7a43a;
 }
 
-
-/* feedback ao clicar */
 .avatar.active {
   transform: scale(0.96);
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
@@ -168,7 +157,6 @@ h1 {
   position: absolute;
   top: 58px;
   right: 0;
-  /* ancora no avatar */
   transform: translateX(-10px);
   width: 230px;
   background: #fbf6e6;
@@ -196,8 +184,6 @@ h1 {
   color: #b00020;
 }
 
-
-/* ===== ANIMAÇÃO CASCATA ===== */
 @keyframes fadeUp {
   from {
     opacity: 0;
@@ -227,5 +213,36 @@ h1 {
   animation: fadeUp 0.8s ease-out forwards;
   animation-delay: var(--delay, 0s);
   will-change: transform, opacity;
+}
+
+@media (max-width: 600px) {
+  .home-view {
+    align-items: flex-start;
+  }
+
+  .hero-content {
+    padding: 48px 16px 0;
+    min-height: 100vh;
+  }
+
+  h1 {
+    font-size: 38px;
+    line-height: 1.2;
+  }
+
+  .subtitle {
+    font-size: 14px;
+    margin-bottom: 32px;
+    padding: 0 6px;
+  }
+
+  .user-menu {
+    top: 16px;
+    right: 16px;
+  }
+
+  .dropdown {
+    transform: translateX(0);
+  }
 }
 </style>

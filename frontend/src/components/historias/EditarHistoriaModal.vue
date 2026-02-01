@@ -1,5 +1,11 @@
 <template>
-  <v-dialog v-model="aberto" max-width="640" :persistent="loading">
+  <v-dialog
+    v-model="aberto"
+    max-width="640"
+    :fullscreen="isMobile"
+    :persistent="loading"
+    transition="dialog-bottom-transition"
+  >
     <v-card class="modal-card">
       <v-card-title class="modal-title">
         Editar História
@@ -19,6 +25,7 @@
           label="Descrição curta"
           variant="outlined"
           rows="2"
+          auto-grow
           :disabled="loading"
         />
 
@@ -33,15 +40,17 @@
         <div class="usuarios">
           <span class="usuarios-label">Usuários</span>
 
-          <v-checkbox
-            v-for="u in usuarios"
-            :key="u.uuid"
-            v-model="form.usuarios"
-            :label="u.nome"
-            :value="u.uuid"
-            density="compact"
-            :disabled="loading"
-          />
+          <div class="usuarios-list">
+            <v-checkbox
+              v-for="u in usuarios"
+              :key="u.uuid"
+              v-model="form.usuarios"
+              :label="u.nome"
+              :value="u.uuid"
+              density="compact"
+              :disabled="loading"
+            />
+          </div>
         </div>
       </v-card-text>
 
@@ -50,6 +59,7 @@
           variant="text"
           @click="fechar"
           :disabled="loading"
+          block="isMobile"
         >
           Cancelar
         </v-btn>
@@ -59,6 +69,7 @@
           :loading="loading"
           :disabled="loading"
           @click="confirmar"
+          block="isMobile"
         >
           Salvar
         </v-btn>
@@ -68,8 +79,12 @@
 </template>
 
 <script setup>
-import { ref, watch } from "vue";
+import { ref, watch, computed } from "vue";
+import { useDisplay } from "vuetify";
 import { atualizarHistoria } from "@/services/historia.service";
+
+const { mobile } = useDisplay();
+const isMobile = computed(() => mobile.value);
 
 const props = defineProps({
   modelValue: Boolean,
@@ -143,6 +158,8 @@ async function confirmar() {
 .modal-card {
   background: #fbf6e6;
   border-radius: 28px;
+  display: flex;
+  flex-direction: column;
 }
 
 .modal-title {
@@ -166,8 +183,36 @@ async function confirmar() {
   margin-bottom: 6px;
 }
 
+.usuarios-list {
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
 .modal-actions {
   justify-content: flex-end;
   gap: 12px;
+}
+
+/* MOBILE ONLY */
+@media (max-width: 600px) {
+  .modal-card {
+    border-radius: 0;
+    height: 100vh;
+  }
+
+  .modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 24px;
+  }
+
+  .modal-actions {
+    position: sticky;
+    bottom: 0;
+    background: #fbf6e6;
+    padding: 12px;
+    flex-direction: column;
+  }
 }
 </style>

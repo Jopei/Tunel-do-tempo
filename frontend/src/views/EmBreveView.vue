@@ -34,6 +34,7 @@
             </span>
         </div>
     </div>
+
     <div class="em-breve">
         <h1 class="texto-elevacao">Em breve...</h1>
     </div>
@@ -68,7 +69,7 @@ function handleClickOutside(e) {
 onMounted(() => {
   document.addEventListener("click", handleClickOutside);
 
-   const overlay = document.getElementById("transition-overlay");
+  const overlay = document.getElementById("transition-overlay");
 
   if (overlay) {
     gsap.to(overlay, {
@@ -93,7 +94,6 @@ const fotoPerfilUrl = computed(() => {
   return `${import.meta.env.VITE_API_BASE_URL}/fotos/${authStore.usuario.foto.uuid}`;
 });
 </script>
-
 <style scoped>
 .em-breve {
     min-height: 100vh;
@@ -151,12 +151,14 @@ h1 {
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
   animation: dropdownIn 0.25s ease forwards;
 }
+
 .user-menu {
   position: absolute;
   top: 24px;
   right: 32px;
   z-index: 20;
 }
+
 .dropdown span {
   display: block;
   padding: 10px 18px;
@@ -222,6 +224,30 @@ h1 {
   to {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+/* ========================= */
+/* MOBILE ONLY – ADAPTAÇÃO */
+/* ========================= */
+@media (max-width: 600px) {
+  .user-menu {
+    top: 16px;
+    right: 16px;
+  }
+
+  .dropdown {
+    width: 200px;
+  }
+
+  h1 {
+    font-size: 32px;
+    text-align: center;
+    padding: 0 12px;
+  }
+
+  .em-breve {
+    padding: 0 16px;
   }
 }
 </style>

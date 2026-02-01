@@ -274,4 +274,72 @@ function formatarData(data) {
     transform: translateY(0);
   }
 }
+
+@media (max-width: 600px) {
+  .historia-show-page {
+    padding: 72px 12px 0;
+  }
+
+  .painel {
+    padding: 24px 20px 28px;
+    border-radius: 24px 24px 0 0;
+    min-height: auto;
+  }
+
+  /* TOPO vira coluna, sem perder informação */
+  .topo {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    text-align: center;
+  }
+
+  .membros {
+    align-items: center;
+  }
+
+  .lista-membros {
+    align-items: center;
+  }
+
+  .centro {
+    text-align: center;
+  }
+
+  .titulo {
+    font-size: 28px;
+  }
+
+  .descricao {
+    font-size: 15px;
+  }
+
+  .info {
+    align-items: center;
+    text-align: center;
+  }
+
+  .info-item {
+    justify-content: center;
+  }
+
+  /* CONTEÚDO */
+  .conteudo-box {
+    padding: 20px;
+    min-height: unset;
+  }
+
+  :deep(.toastui-editor-contents) {
+    font-size: 14px;
+    line-height: 1.8;
+  }
+
+  /* AÇÕES */
+  .acoes {
+    justify-content: center;
+  }
+
+  .folder-icon {
+    font-size: 28px;
+  }
+}
 </style>

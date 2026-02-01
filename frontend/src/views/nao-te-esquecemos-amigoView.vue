@@ -44,8 +44,6 @@
     </button>
   </section>
 </template>
-
-
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from "vue";
 import SideMenu from "@/components/layout/SideMenu.vue";
@@ -90,7 +88,6 @@ function carregarParticles() {
 }
 
 onMounted(async () => {
-
   const overlay = document.getElementById("transition-overlay");
 
   if (overlay) {
@@ -104,6 +101,7 @@ onMounted(async () => {
       },
     });
   }
+
   /* áudio */
   audio = new Audio("/sons/italoSong.mp3");
   audio.loop = true;
@@ -112,12 +110,11 @@ onMounted(async () => {
   audio.play()
     .then(() => {
       tocando.value = true;
-      console.log("Autoplay liberado");
     })
     .catch(() => {
       tocando.value = false;
-      console.warn("Autoplay bloqueado, aguardando interação");
     });
+
   /* particles */
   await carregarParticles();
 
@@ -162,15 +159,13 @@ onBeforeUnmount(() => {
   }
 });
 </script>
-
-
-
 <style scoped>
 .homenagem-page {
   min-height: 100vh;
   background: url("/backgrounds/italo-bg.svg") center/cover no-repeat;
   position: relative;
   overflow: hidden;
+  animation: pageIn 1.2s ease-out;
 }
 
 #particles-js {
@@ -244,18 +239,21 @@ onBeforeUnmount(() => {
   transition: transform .2s ease, background .2s ease;
 }
 
-.homenagem-page {
-  animation: pageIn 1.2s ease-out;
-}
-
 .audio-control:hover {
   transform: scale(1.1);
   background: rgba(0,0,0,.9);
 }
 
+/* ===== MOBILE ===== */
 @media (max-width: 768px) {
   .conteudo {
     padding-top: 100px;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .frase {
+    max-width: 100%;
   }
 
   .linha {
@@ -265,7 +263,16 @@ onBeforeUnmount(() => {
   .letra {
     font-size: 28px;
   }
+
+  .audio-control {
+    bottom: 18px;
+    right: 18px;
+    width: 48px;
+    height: 48px;
+    font-size: 20px;
+  }
 }
+
 @keyframes pageIn {
   from {
     opacity: 0;

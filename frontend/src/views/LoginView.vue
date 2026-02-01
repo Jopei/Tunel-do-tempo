@@ -22,8 +22,12 @@
                         <label>Password</label>
 
                         <div class="password-wrapper">
-                            <input v-model="senha" :type="mostrarSenha ? 'text' : 'password'" placeholder="********"
-                                required />
+                            <input
+                                v-model="senha"
+                                :type="mostrarSenha ? 'text' : 'password'"
+                                placeholder="********"
+                                required
+                            />
 
                             <span class="toggle-password" @click="toggleSenha">
                                 {{ mostrarSenha ? "🙈" : "👁️" }}
@@ -48,7 +52,6 @@
         </div>
     </div>
 </template>
-
 <script setup>
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
@@ -86,7 +89,6 @@ async function handleLogin() {
         authStore.setUsuario(response.usuario);
 
         router.push("/");
-
     } catch (e) {
         erro.value =
             e.response?.data?.message || "Erro ao realizar login.";
@@ -103,7 +105,6 @@ onMounted(() => {
     escolherImagemRandomica();
 });
 </script>
-
 <style scoped>
 .login-page {
     min-height: 100vh;
@@ -125,7 +126,7 @@ onMounted(() => {
     display: flex;
     flex-direction: column;
     animation:
-        fadeUp 0.6s ease-out both
+        fadeUp 0.6s ease-out both;
 }
 
 /* IMAGEM MAIS ALTA */
@@ -211,7 +212,6 @@ button:disabled {
     cursor: default;
 }
 
-
 .visitor {
     margin-top: 22px;
     font-size: 14px;
@@ -236,7 +236,6 @@ button:disabled {
 
 .password-field input {
     padding-right: 44px;
-    /* espaço para o ícone */
 }
 
 .toggle-password {
@@ -254,7 +253,6 @@ button:disabled {
     opacity: 1;
 }
 
-
 @keyframes fadeUp {
     from {
         opacity: 0;
@@ -267,17 +265,40 @@ button:disabled {
     }
 }
 
-@keyframes float {
-    0% {
-        transform: translateY(0);
+/* ========================= */
+/* MOBILE ONLY – ADAPTAÇÃO */
+/* ========================= */
+@media (max-width: 600px) {
+    .login-page {
+        padding: 16px;
+        align-items: flex-start;
     }
 
-    50% {
-        transform: translateY(-6px);
+    .login-card {
+        width: 100%;
+        min-height: auto;
+        border-radius: 24px 24px 0 0;
     }
 
-    100% {
-        transform: translateY(0);
+    .login-image {
+        height: 220px;
+    }
+
+    .login-form {
+        padding: 28px 22px;
+    }
+
+    .login-form h1 {
+        font-size: 22px;
+    }
+
+    .login-form p {
+        font-size: 14px;
+        margin-bottom: 24px;
+    }
+
+    button {
+        width: 100%;
     }
 }
 </style>

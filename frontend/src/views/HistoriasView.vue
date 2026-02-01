@@ -322,4 +322,49 @@ function irParaHistoria(uuid) {
     transform: scale(1.1);
     opacity: 0.85;
 }
+
+@media (max-width: 600px) {
+  .historias-page {
+    padding: 72px 12px 0;
+  }
+
+  .painel {
+    padding: 24px 20px 32px;
+    margin-top: 0;
+    border-radius: 24px 24px 0 0;
+    min-height: auto;
+  }
+
+  /* BUSCA */
+  .search-bar {
+    margin-bottom: 32px;
+  }
+
+  .search-bar input {
+    padding: 16px 52px 16px 20px;
+    border-radius: 18px;
+  }
+
+  /* CARDS EM COLUNA */
+  .cards-area {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .historia-card {
+    width: 100%;
+    height: 150px; /* mantém altura original */
+  }
+
+  /* MENU DE 3 PONTOS SEM QUEBRAR TOQUE */
+  .menu-icon {
+    top: 12px;
+    right: 12px;
+  }
+
+  /* FOOTER DO CARD */
+  .card-footer {
+    font-size: 13px;
+  }
+}
 </style>
