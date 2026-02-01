@@ -105,6 +105,7 @@ import Editor from "@toast-ui/editor";
 import api from "@/services/api";
 import "@toast-ui/editor/dist/toastui-editor.css";
 import SideMenu from "@/components/layout/SideMenu.vue";
+import { listarUsuarios } from "@/services/usuario.service";
 
 const titulo = ref("");
 const descricaoCurta = ref("");
@@ -137,9 +138,16 @@ onMounted(async () => {
     previewStyle: "vertical",
   });
 
-  const { data } = await api.get("/usuarios");
-  usuarios.value = data;
+  carregarUsuarios();
 });
+
+async function carregarUsuarios() {
+  try {
+    usuarios.value = await listarUsuarios();
+  } catch (e) {
+    console.error("Erro ao carregar usuários", e);
+  }
+}
 
 function onFotos(e) {
   fotos.value = Array.from(e.target.files);

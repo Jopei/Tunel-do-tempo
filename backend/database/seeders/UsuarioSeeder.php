@@ -28,8 +28,8 @@ class UsuarioSeeder extends Seeder
             [
                 UsuarioMapping::UUID => Str::uuid()->toString(),
                 UsuarioMapping::NOME => 'João Pedro',
-                UsuarioMapping::EMAIL => '',
-                UsuarioMapping::SENHA => Hash::make(''),
+                UsuarioMapping::EMAIL => 'joaomoura.269@gmail.com',
+                UsuarioMapping::SENHA => Hash::make('Nya@Neia2'),
                 UsuarioMapping::TIPO_USUARIO_ID => $tipoUsuario->getKey(),
                 UsuarioMapping::ANIVERSARIO => Carbon::create(2001, 12, 13),
                 UsuarioMapping::TELEFONE => '',

@@ -1,6 +1,6 @@
 import api from "./api";
 
 export async function listarUsuarios() {
-  const response = await api.get("/usuarios");
+  const response = await api.get("/api/usuarios");
   return response.data;
 }
