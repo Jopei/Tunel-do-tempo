@@ -17,10 +17,13 @@ class UsuarioStoreRequest extends FormRequest
             'nome' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:usuarios,email'],
             'senha' => ['required', 'string', 'min:8'],
-            'tipo_usuario_id' => ['required', 'integer', 'exists:tipo_usuario,id'],
+            'tipo_usuario_id' => ['required', 'integer', 'exists:tipo_usuarios,id'],
             'aniversario' => ['nullable', 'date'],
             'telefone' => ['nullable', 'string', 'max:20'],
             'descricao' => ['nullable', 'string'],
+            'imagem' => ['required', 'image'],
+            'chave_nome' => ['required', 'string'],
+            'chave_codigo' => ['required', 'string'],
         ];
     }
 

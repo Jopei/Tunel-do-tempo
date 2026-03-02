@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Usuario\CriarUsuarioAction;
 use App\Http\Requests\UsuarioStoreRequest;
 use App\Services\UsuarioService;
 use App\DTO\UsuarioCreateDTO;
 use App\Http\Resources\UsuarioGetResource;
 use App\Http\Resources\UsuarioListResource;
+use App\Http\Resources\UsuarioResource;
 use Illuminate\Http\JsonResponse;
 use Throwable;
 
@@ -16,28 +18,21 @@ class UsuarioController extends Controller
         protected UsuarioService $usuarioService
     ) {}
 
-    public function store(UsuarioStoreRequest $request): JsonResponse
-    {
+    public function store(
+        UsuarioStoreRequest $request,
+        CriarUsuarioAction $action
+    ) {
         try {
-            $dto = new UsuarioCreateDTO(
-                nome: $request->nome,
-                email: $request->email,
-                senha: $request->senha,
-                tipoUsuarioId: $request->tipo_usuario_id,
-                aniversario: $request->aniversario,
-                telefone: $request->telefone,
-                descricao: $request->descricao,
+            $usuario = $action->execute($request->validated(), $request->file('imagem'));
+
+            return response()->json(
+                new UsuarioResource($usuario),
+                201
             );
-
-            $usuario = $this->usuarioService->criarUsuario($dto);
-
-            return response()->json([
-                'message' => 'Usuário criado com sucesso.'
-            ], 201);
         } catch (Throwable $e) {
             return response()->json([
-                'message' => 'Erro ao criar usuário.',
-            ], 500);
+                'message' => $e->getMessage()
+            ], 422);
         }
     }
 

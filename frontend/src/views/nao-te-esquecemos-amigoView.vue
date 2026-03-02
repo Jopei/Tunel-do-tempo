@@ -3,7 +3,7 @@
     <!-- PARTÍCULAS -->
     <div id="particles-js"></div>
 
-    <SideMenu v-if="authStore.logado" />
+    <UserMenu/>
 
     <!-- CONTEÚDO -->
     <div class="conteudo">
@@ -46,9 +46,9 @@
 </template>
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from "vue";
-import SideMenu from "@/components/layout/SideMenu.vue";
 import { useAuthStore } from "@/stores/auth";
 import gsap from "gsap";
+import UserMenu from "@/components/layout/UserMenu.vue";
 
 const authStore = useAuthStore();
 const tocando = ref(false);

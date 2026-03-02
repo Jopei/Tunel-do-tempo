@@ -12,10 +12,10 @@
 
       <!-- DESKTOP MENU -->
       <div class="nav-items">
-        <span class="nav-item">Videos</span>
+        <span class="nav-item" @click="irParaVideos">Videos</span>
         <span class="nav-item" @click="irParaHistorias">Historias</span>
         <span class="nav-item" @click="irParaRua">A Rua</span>
-        <span class="nav-item">Fotos</span>
+        <span class="nav-item" @click="irParaFotos">Fotos</span>
       </div>
 
       <!-- MOBILE MENU BUTTON -->
@@ -54,8 +54,9 @@
 
       <span @click="navegar('/historias')">Historias</span>
       <span @click="navegar('/a-rua')">A Rua</span>
-      <span>Videos</span>
-      <span>Fotos</span>
+      <span @click="navegar('/galeria-videos')">Videos</span>
+      <span @click="navegar('/galeria-fotos')">Fotos</span>
+      
     </div>
 
     <div class="video-area">
@@ -96,8 +97,16 @@ function irParaHistorias() {
   router.push("/historias");
 }
 
+function irParaVideos() {
+  router.push("/galeria-videos");
+}
+
 function irParaRua() {
   router.push("/a-rua");
+}
+
+function irParaFotos() {
+  router.push("/galeria-fotos");
 }
 
 function navegar(path) {
@@ -117,6 +126,13 @@ function navegar(path) {
   margin-top: 48px;
   padding: 32px 0 120px;
   z-index: 2;
+}
+.video-area {
+  margin-top: 48px;
+  display: flex;
+  justify-content: center;
+  position: relative;
+  z-index: 3;
 }
 
 .nav {

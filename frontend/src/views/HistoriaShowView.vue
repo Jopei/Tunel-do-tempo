@@ -1,11 +1,10 @@
 <template>
   <section class="historia-show-page">
-    <SideMenu />
+    <UserMenu />
 
     <div class="painel">
       <!-- TOPO -->
       <div class="topo">
-        <!-- MEMBROS -->
         <div class="membros">
           <div class="label-icon">
             <v-icon size="18">mdi-account-group</v-icon>
@@ -20,17 +19,15 @@
           </div>
         </div>
 
-        <!-- CENTRO -->
         <div class="centro">
           <h1 class="titulo">{{ historia.titulo }}</h1>
           <p class="descricao">{{ historia.descricao_curta }}</p>
         </div>
 
-        <!-- INFO -->
         <div class="info">
           <div class="info-item">
             <v-icon size="16">mdi-calendar</v-icon>
-            <span>{{formatarData( historia.data_historia)}}</span>
+            <span>{{ formatarData(historia.data_historia) }}</span>
           </div>
 
           <div class="info-item">
@@ -42,30 +39,90 @@
 
       <!-- CONTEÚDO -->
       <div class="conteudo-box">
-        <div ref="viewerRef" class="markdown-viewer"></div>
+        <div class="rich-conteudo" v-html="historia.conteudo"></div>
       </div>
 
-      <!-- AÇÃO FUTURA -->
+      <!-- AÇÕES -->
       <div class="acoes">
-        <v-icon class="folder-icon">
+        <v-icon
+          class="folder-icon"
+          @click="mostrarModalMidia = true"
+        >
           mdi-folder-outline
         </v-icon>
       </div>
     </div>
+
+    <!-- MODAL SELETOR DE MÍDIA -->
+    <v-dialog v-model="mostrarModalMidia" max-width="700">
+      <v-card class="modal-midia">
+        <v-card-title class="titulo-modal">
+          Galeria da História
+        </v-card-title>
+
+        <v-card-text>
+          <div class="grid-midia">
+            <div class="midia-card" @click="abrirFotos">
+              <v-icon size="48">mdi-image-multiple</v-icon>
+              <span>Fotos</span>
+            </div>
+
+            <div class="midia-card" @click="abrirVideos">
+              <v-icon size="48">mdi-video</v-icon>
+              <span>Vídeos</span>
+            </div>
+
+            <div class="midia-card" @click="abrirMusicas">
+              <v-icon size="48">mdi-music</v-icon>
+              <span>Músicas</span>
+            </div>
+          </div>
+        </v-card-text>
+
+        <v-card-actions>
+          <v-spacer />
+          <v-btn @click="mostrarModalMidia = false">
+            Fechar
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- GALERIAS -->
+    <GaleriaFotos
+      v-model="mostrarGaleriaFotos"
+      :fotos="historia.fotos"
+    />
+
+    <GaleriaVideos
+      v-model="mostrarGaleriaVideos"
+      :videos="historia.videos"
+    />
+
+    <GaleriaMusicas
+      v-model="mostrarGaleriaMusicas"
+      :musicas="historia.musicas"
+    />
+
   </section>
 </template>
+
 
 <script setup>
 import { ref, onMounted } from "vue";
 import { useRoute } from "vue-router";
-import SideMenu from "@/components/layout/SideMenu.vue";
+import GaleriaFotos from "@/components/historias/GaleriaFotos.vue";
+import GaleriaVideos from "@/components/historias/GaleriaVideos.vue";
+import GaleriaMusicas from "@/components/historias/GaleriaMusicas.vue";
 import api from "@/services/api";
-
-import "@toast-ui/editor/dist/toastui-editor.css";
-import Viewer from "@toast-ui/editor/dist/toastui-editor-viewer";
+import UserMenu from "@/components/layout/UserMenu.vue";
 
 const route = useRoute();
-const viewerRef = ref(null);
+
+const mostrarModalMidia = ref(false);
+const mostrarGaleriaFotos = ref(false);
+const mostrarGaleriaVideos = ref(false);
+const mostrarGaleriaMusicas = ref(false);
 
 const historia = ref({
   titulo: "",
@@ -80,15 +137,43 @@ const historia = ref({
 });
 
 onMounted(async () => {
-  const { data } = await api.get(`/historias/${route.params.uuid}`);
-  console.log(data);
-  historia.value = data;
-
-  new Viewer({
-    el: viewerRef.value,
-    initialValue: data.conteudo || "",
-  });
+  try {
+    const { data } = await api.get(`/historias/${route.params.uuid}`);
+    historia.value = data;
+  } catch (e) {
+    console.error("Erro ao carregar história", e);
+  }
 });
+
+function abrirFotos() {
+  if (!historia.value.fotos.length) {
+    alert("Esta história não possui fotos.");
+    return;
+  }
+
+  mostrarModalMidia.value = false;
+  mostrarGaleriaFotos.value = true;
+}
+
+function abrirVideos() {
+  if (!historia.value.videos.length) {
+    alert("Esta história não possui vídeos.");
+    return;
+  }
+
+  mostrarModalMidia.value = false;
+  mostrarGaleriaVideos.value = true;
+}
+
+function abrirMusicas() {
+  if (!historia.value.musicas.length) {
+    alert("Esta história não possui músicas.");
+    return;
+  }
+
+  mostrarModalMidia.value = false;
+  mostrarGaleriaMusicas.value = true;
+}
 
 function formatarData(data) {
   if (!data) return "";
@@ -97,8 +182,9 @@ function formatarData(data) {
 }
 </script>
 
+
+
 <style scoped>
-/* ===== FUNDO ===== */
 .historia-show-page {
   min-height: 100vh;
   background: url("/backgrounds/home-bg.svg") center/cover no-repeat;
@@ -106,7 +192,6 @@ function formatarData(data) {
   animation: pageFadeUp 0.9s ease-out forwards;
 }
 
-/* ===== PAINEL ===== */
 .painel {
   background: #fbf6e6;
   border-radius: 48px;
@@ -115,21 +200,11 @@ function formatarData(data) {
   box-shadow: 0 30px 80px rgba(0, 0, 0, .25);
 }
 
-/* ===== TOPO ===== */
 .topo {
   display: grid;
   grid-template-columns: 1fr 2fr 1fr;
   align-items: center;
   margin-bottom: 36px;
-}
-
-.membros .label {
-  font-weight: 700;
-}
-
-.membros .valor {
-  display: block;
-  margin-top: 6px;
 }
 
 .centro {
@@ -147,66 +222,8 @@ function formatarData(data) {
   font-weight: 600;
 }
 
-.info {
-  text-align: right;
-  font-weight: 700;
-}
-
-.info .data {
-  display: block;
-  margin-bottom: 6px;
-}
-
-.info .tipo {
-  text-transform: capitalize;
-}
-
-/* ===== CONTEÚDO ===== */
-.conteudo-box {
-  background: #fff8e1;
-  border-radius: 24px;
-  padding: 36px;
-  min-height: 420px;
-  box-shadow: inset 0 0 30px rgba(0, 0, 0, .08);
-}
-
-.markdown-viewer {
-  font-size: 15px;
-  line-height: 1.7;
-}
-
-/* ===== AÇÕES ===== */
-.acoes {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 18px;
-}
-
-.folder-icon {
-  font-size: 32px;
-  cursor: pointer;
-  transition: transform .2s ease, opacity .2s ease;
-}
-
-.folder-icon:hover {
-  transform: scale(1.15);
-  opacity: .85;
-}
-
 .membros {
   font-weight: 700;
-}
-
-.lista-membros {
-  display: flex;
-  flex-direction: column;
-  margin-top: 6px;
-  gap: 4px;
-}
-
-.membro {
-  font-weight: 600;
-  font-size: 14px;
 }
 
 .label-icon {
@@ -245,30 +262,156 @@ function formatarData(data) {
   font-weight: 700;
 }
 
-:deep(.toastui-editor-contents) {
+.conteudo-box {
+  background: #fff8e1;
+  border-radius: 24px;
+  padding: 36px;
+  min-height: 420px;
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, .08);
+}
+
+.rich-conteudo {
   font-size: 15px;
   line-height: 1.9;
   color: #333;
 }
 
-:deep(.toastui-editor-contents p) {
+.rich-conteudo p {
   margin-bottom: 18px;
 }
 
-:deep(.toastui-editor-contents h1),
-:deep(.toastui-editor-contents h2),
-:deep(.toastui-editor-contents h3) {
+.rich-conteudo h1 {
+  font-size: 28px;
   margin-top: 28px;
   margin-bottom: 16px;
 }
 
-/* ===== ANIMAÇÃO ===== */
+.rich-conteudo h2 {
+  font-size: 22px;
+  margin-top: 24px;
+  margin-bottom: 14px;
+}
+
+.rich-conteudo h3 {
+  font-size: 18px;
+  margin-top: 20px;
+  margin-bottom: 12px;
+}
+
+.rich-conteudo ul,
+.rich-conteudo ol {
+  padding-left: 22px;
+  margin-bottom: 18px;
+}
+
+.rich-conteudo li {
+  margin-bottom: 6px;
+}
+
+.rich-conteudo img {
+  max-width: 100%;
+  border-radius: 12px;
+  margin: 16px 0;
+}
+
+.rich-conteudo a {
+  color: #c7a43a;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.rich-conteudo a:hover {
+  text-decoration: underline;
+}
+
+.acoes {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+.folder-icon {
+  font-size: 32px;
+  cursor: pointer;
+  transition: transform .2s ease, opacity .2s ease;
+}
+
+.folder-icon:hover {
+  transform: scale(1.15);
+  opacity: .85;
+}
+
+/* MODAL MÍDIA – PADRÃO TÚNEL DO TEMPO */
+
+.modal-midia {
+  background: #fbf6e6;
+  border-radius: 32px;
+  padding: 32px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, .25);
+}
+
+.titulo-modal {
+  font-weight: 800;
+  text-align: center;
+  font-size: 22px;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+/* GRID */
+.grid-midia {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28px;
+  margin-top: 24px;
+}
+
+/* CARDS */
+.midia-card {
+  background: rgba(199, 164, 58, 0.12);
+  border: 2px solid rgba(199, 164, 58, 0.35);
+  border-radius: 22px;
+  padding: 40px 10px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+
+  font-weight: 700;
+  color: #333;
+
+  cursor: pointer;
+
+  transition: all .25s ease;
+}
+
+/* Ícone dourado */
+.midia-card .v-icon {
+  color: #c7a43a;
+  transition: transform .25s ease;
+}
+
+/* Hover elegante */
+.midia-card:hover {
+  background: rgba(199, 164, 58, 0.22);
+  border-color: #c7a43a;
+  transform: translateY(-8px);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, .18);
+}
+
+.midia-card:hover .v-icon {
+  transform: scale(1.15);
+  color: #b89630;
+}
+
+
+
 @keyframes pageFadeUp {
   from {
     opacity: 0;
     transform: translateY(28px);
   }
-
   to {
     opacity: 1;
     transform: translateY(0);
@@ -286,60 +429,35 @@ function formatarData(data) {
     min-height: auto;
   }
 
-  /* TOPO vira coluna, sem perder informação */
   .topo {
     grid-template-columns: 1fr;
     gap: 24px;
     text-align: center;
   }
 
-  .membros {
-    align-items: center;
-  }
-
-  .lista-membros {
-    align-items: center;
-  }
-
-  .centro {
-    text-align: center;
-  }
-
-  .titulo {
-    font-size: 28px;
-  }
-
-  .descricao {
-    font-size: 15px;
-  }
-
   .info {
     align-items: center;
-    text-align: center;
   }
 
-  .info-item {
-    justify-content: center;
-  }
-
-  /* CONTEÚDO */
   .conteudo-box {
     padding: 20px;
     min-height: unset;
   }
 
-  :deep(.toastui-editor-contents) {
+  .rich-conteudo {
     font-size: 14px;
-    line-height: 1.8;
   }
 
-  /* AÇÕES */
   .acoes {
     justify-content: center;
   }
+  .grid-midia {
+    grid-template-columns: 1fr;
+  }
 
-  .folder-icon {
-    font-size: 28px;
+  .modal-midia {
+    padding: 24px;
+    border-radius: 24px 24px 0 0;
   }
 }
 </style>

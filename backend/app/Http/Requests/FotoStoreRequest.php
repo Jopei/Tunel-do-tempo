@@ -15,7 +15,7 @@ class FotoStoreRequest extends FormRequest
     {
         return [
             'imagem' => ['required', 'image', 'mimes:jpg,jpeg,png', 'max:4096'],
-            'tipo_imagem_id' => ['required', 'exists:tipo_imagem,id'],
+            'tipo_imagem_id' => ['required', 'exists:tipo_imagens,id'],
             'usuarios_uuid' => ['nullable', 'array'],
             'usuarios_uuid.*' => ['exists:usuarios,uuid'],
             'titulo' => ['nullable', 'string', 'max:255'],

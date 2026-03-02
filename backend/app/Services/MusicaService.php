@@ -21,7 +21,8 @@ class MusicaService
 
         $path = $dto->musica->storeAs(
             'uploads/musicas',
-            $nomeArquivo
+            $nomeArquivo,
+            'public'
         );
 
         return $this->musicaRepository->create([
@@ -38,7 +39,8 @@ class MusicaService
 
         $path = $arquivo->storeAs(
             'uploads/musicas',
-            $nomeArquivo
+            $nomeArquivo,
+            'public'
         );
 
         return Musica::create([

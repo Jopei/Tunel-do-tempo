@@ -1,8 +1,9 @@
 <template>
   <section class="cadastrar-historia-page">
-    <SideMenu />
+    <UserMenu />
     <div class="card">
       <h1>Cadastrar História</h1>
+
       <div v-if="sucesso" class="sucesso-msg">
         História cadastrada com sucesso 🎉
       </div>
@@ -33,21 +34,21 @@
         </select>
       </div>
 
+      <!-- RICH TEXT -->
       <div class="field destaque">
-        <label>Conteúdo da História (Markdown)</label>
+        <label>Conteúdo da História</label>
         <div ref="editorRef" class="editor"></div>
       </div>
 
-      <!-- USUÁRIOS (CHECKBOX) -->
+      <!-- USUÁRIOS -->
       <div class="field">
         <label>Usuários da História</label>
 
         <div class="usuarios-checkbox">
           <label v-for="u in usuarios" :key="u.uuid" class="checkbox-item">
             <input type="checkbox" :value="u.uuid" v-model="usuariosSelecionados" />
-            <span class="checkbox-label"> {{ u.nome }}</span>
+            <span class="checkbox-label">{{ u.nome }}</span>
           </label>
-
         </div>
       </div>
 
@@ -71,21 +72,21 @@
           <input type="file" multiple accept="audio/*" @change="onMusicas" />
         </label>
       </div>
+
       <div v-if="musicas.length" class="musicas-lista">
         <div v-for="(m, i) in musicas" :key="i" class="musica-item">
           <span>{{ m.name }}</span>
           <button type="button" @click="removerMusica(i)">×</button>
         </div>
       </div>
+
       <div class="preview">
-        <!-- FOTOS -->
-        <div v-for="(f, i) in fotosPreview" :key="'f' + i" class="preview-item">
+        <div v-for="(f, i) in fotosPreview" :key="'f'+i" class="preview-item">
           <img :src="f" />
           <button type="button" class="remove-btn" @click="removerFoto(i)">×</button>
         </div>
 
-        <!-- VÍDEOS -->
-        <div v-for="(v, i) in videosPreview" :key="'v' + i" class="preview-item">
+        <div v-for="(v, i) in videosPreview" :key="'v'+i" class="preview-item">
           <video :src="v" controls />
           <button type="button" class="remove-btn" @click="removerVideo(i)">×</button>
         </div>
@@ -101,15 +102,16 @@
 
 <script setup>
 import { ref, onMounted } from "vue";
-import Editor from "@toast-ui/editor";
+import Quill from "quill";
+import "quill/dist/quill.snow.css";
 import api from "@/services/api";
-import "@toast-ui/editor/dist/toastui-editor.css";
-import SideMenu from "@/components/layout/SideMenu.vue";
 import { listarUsuarios } from "@/services/usuario.service";
+import UserMenu from "@/components/layout/UserMenu.vue";
 
 const titulo = ref("");
 const descricaoCurta = ref("");
 const dataHistoria = ref("");
+const tipoHistoria = ref("Pessoal");
 
 const usuarios = ref([]);
 const usuariosSelecionados = ref([]);
@@ -117,115 +119,114 @@ const usuariosSelecionados = ref([]);
 const fotos = ref([]);
 const videos = ref([]);
 const musicas = ref([]);
-const tipoHistoria = ref("PESSOAL");
+
+const fotosPreview = ref([]);
+const videosPreview = ref([]);
 
 const loading = ref(false);
 const sucesso = ref(false);
 const errors = ref({});
 
-
-const fotosPreview = ref([]);
-const videosPreview = ref([]);
-
 const editorRef = ref(null);
 let editor;
 
 onMounted(async () => {
-  editor = new Editor({
-    el: editorRef.value,
-    height: "420px",
-    initialEditType: "markdown",
-    previewStyle: "vertical",
+  editor = new Quill(editorRef.value, {
+    theme: "snow",
+    placeholder: "Escreva a história aqui...",
+    modules: {
+      toolbar: [
+        [{ header: [1,2,3,false] }],
+        ["bold","italic","underline"],
+        [{ list:"ordered" },{ list:"bullet" }],
+        ["link","image"],
+        ["clean"]
+      ]
+    }
   });
 
   carregarUsuarios();
 });
 
 async function carregarUsuarios() {
-  try {
-    usuarios.value = await listarUsuarios();
-  } catch (e) {
-    console.error("Erro ao carregar usuários", e);
-  }
+  usuarios.value = await listarUsuarios();
 }
 
-function onFotos(e) {
+function onFotos(e){
   fotos.value = Array.from(e.target.files);
-  fotosPreview.value = fotos.value.map(f => URL.createObjectURL(f));
+  fotosPreview.value = fotos.value.map(f=>URL.createObjectURL(f));
 }
 
-function onVideos(e) {
+function onVideos(e){
   videos.value = Array.from(e.target.files);
-  videosPreview.value = videos.value.map(v => URL.createObjectURL(v));
+  videosPreview.value = videos.value.map(v=>URL.createObjectURL(v));
 }
 
-function onMusicas(e) {
+function onMusicas(e){
   musicas.value = Array.from(e.target.files);
 }
 
-function removerFoto(index) {
-  fotos.value.splice(index, 1);
-  fotosPreview.value.splice(index, 1);
+function removerFoto(i){
+  fotos.value.splice(i,1);
+  fotosPreview.value.splice(i,1);
 }
 
-function removerVideo(index) {
-  videos.value.splice(index, 1);
-  videosPreview.value.splice(index, 1);
+function removerVideo(i){
+  videos.value.splice(i,1);
+  videosPreview.value.splice(i,1);
 }
 
-function removerMusica(index) {
-  musicas.value.splice(index, 1);
+function removerMusica(i){
+  musicas.value.splice(i,1);
 }
 
-async function salvar() {
-  loading.value = true;
-  sucesso.value = false;
-  errors.value = {};
+async function salvar(){
+  loading.value=true;
+  sucesso.value=false;
+  errors.value={};
 
-  const form = new FormData();
+  const form=new FormData();
+  form.append("titulo",titulo.value);
+  form.append("descricao_curta",descricaoCurta.value);
+  form.append("conteudo",editor.root.innerHTML);
+  form.append("data_historia",dataHistoria.value);
+  form.append("tipo_historia",tipoHistoria.value);
 
-  form.append("titulo", titulo.value);
-  form.append("descricao_curta", descricaoCurta.value);
-  form.append("conteudo", editor.getMarkdown());
-  form.append("data_historia", dataHistoria.value);
-  form.append("tipo_historia", tipoHistoria.value);
+  usuariosSelecionados.value.forEach(u=>{
+    form.append("usuarios[]",u);
+  });
 
-  usuariosSelecionados.value.forEach(u =>
-    form.append("usuarios[]", u)
-  );
+  fotos.value.forEach(f=>form.append("fotos[]",f));
+  videos.value.forEach(v=>form.append("videos[]",v));
+  musicas.value.forEach(m=>form.append("musicas[]",m));
 
-  fotos.value.forEach(f => form.append("fotos[]", f));
-  videos.value.forEach(v => form.append("videos[]", v));
-  musicas.value.forEach(m => form.append("musicas[]", m));
-
-  try {
-    const response = await api.post("/cadastrar/historias", form);
-
-    if (response.status === 201 || response.status === 200) {
-      sucesso.value = true;
+  try{
+    const response=await api.post("/cadastrar/historias",form);
+    if(response.status===201||response.status===200){
+      sucesso.value=true;
       limparFormulario();
     }
-  } catch (e) {
-    if (e.response?.status === 422) {
-      errors.value = e.response.data.errors || {};
+  }catch(e){
+    if(e.response?.status===422){
+      errors.value=e.response.data.errors||{};
     }
-  } finally {
-    loading.value = false;
+  }finally{
+    loading.value=false;
   }
 }
 
-function limparFormulario() {
-  titulo.value = "";
-  descricaoCurta.value = "";
-  dataHistoria.value = "";
-  tipoHistoria.value = "Pessoal";
-  usuariosSelecionados.value = [];
-  fotos.value = [];
-  videos.value = [];
-  musicas.value = [];
-  fotosPreview.value = [];
-  videosPreview.value = [];
-  editor.setMarkdown("");
+function limparFormulario(){
+  titulo.value="";
+  descricaoCurta.value="";
+  dataHistoria.value="";
+  tipoHistoria.value="Pessoal";
+  usuariosSelecionados.value=[];
+  fotos.value=[];
+  videos.value=[];
+  musicas.value=[];
+  fotosPreview.value=[];
+  videosPreview.value=[];
+  editor.setContents([]);
 }
 </script>
 
@@ -382,19 +383,7 @@ button:hover {
   box-shadow: 0 10px 24px rgba(0, 0, 0, .25);
 }
 
-/* MARKDOWN LIMPO */
-:deep(.toastui-editor-defaultUI) {
-  border: none;
-  background: transparent;
-}
 
-:deep(.toastui-editor-preview) {
-  background: transparent;
-}
-
-:deep(.toastui-editor-contents) {
-  color: #333;
-}
 
 .preview-item {
   position: relative;
@@ -552,6 +541,19 @@ button:disabled {
   cursor: not-allowed;
 }
 
+:deep(.ql-toolbar){
+  border:none;
+  background:rgba(199,164,58,0.15);
+  border-radius:12px 12px 0 0;
+}
+
+:deep(.ql-container){
+  border:none;
+  min-height:300px;
+  border-radius:0 0 12px 12px;
+  font-size:16px;
+}
+
 /* ========================= */
 /* MOBILE ONLY – ADAPTACAO */
 /* ========================= */
@@ -596,5 +598,6 @@ button:disabled {
     overflow-x: hidden;
   }
 }
+
 
 </style>

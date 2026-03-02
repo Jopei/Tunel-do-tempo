@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\DTO\FotoCreateDTO;
 use App\DTO\FotoPerfilCreateDTO;
+use App\DTO\FotoUpdateDTO;
 use App\Enums\TipoImagemEnum;
 use App\Mapping\FotoMapping;
 use App\Repositories\FotoRepository;
@@ -12,9 +13,10 @@ use App\Models\TipoImagem;
 use App\Mapping\UsuarioFotoMapping;
 use App\Mapping\TipoImagemMapping;
 use App\Models\Foto;
+use DomainException;
 use Illuminate\Support\Str;
 use Illuminate\Http\UploadedFile;
-
+use Illuminate\Support\Facades\Storage;
 
 class FotoService
 {
@@ -35,7 +37,11 @@ class FotoService
         )->firstOrFail();
 
         $nomeArquivo = Str::uuid()->toString() . '.' . $dto->imagem->extension();
-        $path = $dto->imagem->storeAs('uploads/usuarios/perfil', $nomeArquivo);
+        $path = $dto->imagem->storeAs(
+            'uploads/fotos/perfil',
+            $nomeArquivo,
+            'public'
+        );
 
         $foto = $this->fotoRepository->create([
             'titulo' => $dto->titulo,
@@ -56,14 +62,22 @@ class FotoService
 
     public function criarFoto(FotoCreateDTO $dto)
     {
-        $nomeArquivo = Str::uuid()->toString() . '.' . $dto->imagem->extension();
-        $path = $dto->imagem->storeAs('uploads/fotos', $nomeArquivo);
+        $usuarioId = auth()->user()->id;
+        
+        $nomeArquivo = Str::uuid() . '.' . $dto->imagem->extension();
+
+        $path = $dto->imagem->storeAs(
+            'uploads/fotos',
+            $nomeArquivo,
+            'public'
+        );
 
         $foto = $this->fotoRepository->create([
             'titulo' => $dto->titulo,
             'descricao' => $dto->descricao,
             'path' => $path,
             'tipo_imagem_id' => $dto->tipoImagemId,
+            'usuario_cadastrou_id' => $usuarioId,
         ]);
 
         if (!empty($dto->usuariosUuid)) {
@@ -83,13 +97,13 @@ class FotoService
         return $foto;
     }
 
-    public function editarFoto(string $uuid, array $data)
+    public function editarFoto(FotoUpdateDTO $dto)
     {
-        $foto = $this->fotoRepository->buscarPorUuid($uuid);
+        $foto = $this->fotoRepository->buscarPorUuid($dto->uuid);
 
-        $foto->update([
-            FotoMapping::TITULO => $data['titulo'] ?? $foto->titulo,
-            FotoMapping::DESCRICAO => $data['descricao'] ?? $foto->descricao,
+        $this->fotoRepository->atualizar($foto, [
+            'titulo' => $dto->titulo,
+            'descricao' => $dto->descricao,
         ]);
 
         return $foto;
@@ -133,7 +147,8 @@ class FotoService
 
         $path = $arquivo->storeAs(
             'uploads/fotos',
-            $nomeArquivo
+            $nomeArquivo,
+            'public'
         );
 
         return Foto::create([
@@ -155,5 +170,28 @@ class FotoService
         )->firstOrFail();
 
         return $tipoImagem->id;
+    }
+
+    public function buscarPorUuid(string $uuid): Foto
+    {
+        return $this->fotoRepository->buscarPorUuid($uuid);
+    }
+
+    public function removerFoto(string $uuid): void
+    {
+        $foto = $this->fotoRepository->buscarPorUuid($uuid);
+
+        if ($foto->trashed()) {
+            throw new DomainException('Foto já removida.');
+        }
+
+        if (
+            !$foto->{FotoMapping::EXTERNAL_LINK} &&
+            Storage::disk('public')->exists($foto->{FotoMapping::PATH})
+        ) {
+            Storage::disk('public')->delete($foto->{FotoMapping::PATH});
+        }
+
+        $this->fotoRepository->excluir($foto);
     }
 }

@@ -1,7 +1,6 @@
 <template>
     <section class="historias-page">
-        <SideMenu />
-
+        <UserMenu/>
         <div class="painel">
             <div class="search-bar">
                 <input v-model="busca" type="text" placeholder="Buscar História..." />
@@ -11,9 +10,11 @@
             </div>
 
             <div class="cards-area">
-                <div v-for="h in historiasFiltradas" :key="h.uuid" class="historia-card"
-                    @click="irParaHistoria(h.uuid)">
-                    <!-- MENU 3 PONTOS -->
+                <div v-for="h in historiasFiltradas"
+                     :key="h.uuid"
+                     class="historia-card"
+                     @click="irParaHistoria(h.uuid)">
+
                     <v-menu location="end top" offset="10">
                         <template #activator="{ props }">
                             <v-icon v-bind="props" class="menu-icon" @click.stop>
@@ -48,6 +49,7 @@
             </div>
         </div>
     </section>
+
     <v-dialog v-model="dialogExcluir" max-width="420">
         <v-card style="background:#fbf6e6; border-radius:24px;">
             <v-card-title style="font-weight:700; text-align:center;">
@@ -70,17 +72,20 @@
         </v-card>
     </v-dialog>
 
-    <EditarHistoriaModal v-model="dialogEditar" :historia="historiaSelecionada" @confirmar="recarregarHistorias" />
-
-
+    <EditarHistoriaModal
+        v-model="dialogEditar"
+        :historia="historiaSelecionada"
+        @confirmar="recarregarHistorias"
+    />
 </template>
+
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import SideMenu from "@/components/layout/SideMenu.vue";
 import { buscarHistoriasResumo } from "@/services/historia.service";
-import { deletarHistoria, atualizarHistoria } from "@/services/historia.service";
+import { deletarHistoria } from "@/services/historia.service";
 import EditarHistoriaModal from "@/components/historias/EditarHistoriaModal.vue";
+import UserMenu from "@/components/layout/UserMenu.vue";
 
 const router = useRouter();
 const historias = ref([]);
@@ -122,18 +127,17 @@ async function confirmarExclusao() {
 }
 
 async function recarregarHistorias() {
-  historias.value = await buscarHistoriasResumo();
+    historias.value = await buscarHistoriasResumo();
 }
-
 
 function irParaHistoria(uuid) {
-  router.push({
-    name: "historias-show",
-    params: { uuid },
-  });
+    router.push({
+        name: "historias-show",
+        params: { uuid },
+    });
 }
-
 </script>
+
 <style scoped>
 .historias-page {
     min-height: 100vh;
@@ -177,11 +181,13 @@ function irParaHistoria(uuid) {
 .cards-area {
     display: flex;
     gap: 32px;
+    flex-wrap: wrap; /* PERMITE QUEBRA */
 }
 
 .historia-card {
     position: relative;
-    width: 260px;
+    width: calc((100% - 160px) / 6); /* 6 POR LINHA */
+    min-width: 240px;
     height: 150px;
     background: radial-gradient(circle at center, #efd56b, #c9a42f);
     border-radius: 22px;
@@ -323,9 +329,11 @@ function irParaHistoria(uuid) {
     opacity: 0.85;
 }
 
+
 @media (max-width: 600px) {
+
   .historias-page {
-    padding: 72px 12px 0;
+    padding: 72px 16px 0;
   }
 
   .painel {
@@ -334,37 +342,37 @@ function irParaHistoria(uuid) {
     border-radius: 24px 24px 0 0;
     min-height: auto;
   }
-
+  
   /* BUSCA */
   .search-bar {
-    margin-bottom: 32px;
+    margin-bottom: 28px;
   }
 
   .search-bar input {
-    padding: 16px 52px 16px 20px;
-    border-radius: 18px;
+    padding: 14px 48px 14px 18px;
+    border-radius: 16px;
   }
 
-  /* CARDS EM COLUNA */
+  /* CARDS */
   .cards-area {
-    flex-direction: column;
-    gap: 20px;
+    gap: 16px;
   }
 
   .historia-card {
-    width: 100%;
-    height: 150px; /* mantém altura original */
+    width: calc((100% - 16px) / 2); /* 2 por linha */
+    min-width: unset;
+    height: 150px;
   }
 
-  /* MENU DE 3 PONTOS SEM QUEBRAR TOQUE */
   .menu-icon {
-    top: 12px;
-    right: 12px;
+    top: 10px;
+    right: 10px;
   }
 
-  /* FOOTER DO CARD */
   .card-footer {
     font-size: 13px;
   }
+
+  
 }
 </style>

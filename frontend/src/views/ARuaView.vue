@@ -1,32 +1,6 @@
 <template>
   <header class="rua-header">
-    <!-- MENU DO USUÁRIO -->
-    <div v-if="authStore.logado" class="user-menu">
-      <div class="avatar" :class="{ active: menuAberto }" @click="toggleMenu">
-        <template v-if="fotoPerfilUrl">
-          <img :src="fotoPerfilUrl" alt="Perfil" />
-        </template>
-
-        <template v-else>
-          <span class="avatar-icon">👤</span>
-        </template>
-      </div>
-
-      <div v-if="menuAberto" class="dropdown">
-        <span @click="router.push('/')">Home</span>
-        <span @click="router.push('/historias/criar')">Adicionar História</span>
-        <span @click="router.push('/fotos/criar')">Adicionar Foto</span>
-        <span @click="router.push('/videos/criar')">Adicionar Vídeo</span>
-        <span @click="router.push('/galeria')">Ver Galeria</span>
-        <span @click="router.push('/configuracoes')">Configurações</span>
-        <span class="sair" @click="logout">Sair</span>
-      </div>
-
-      <button class="audio-control" @click="toggleAudio">
-        <span v-if="!tocando">▶</span>
-        <span v-else>⏸</span>
-      </button>
-    </div>
+    <UserMenu v-if="authStore.logado" />
   </header>
 
   <section class="rua-page">
@@ -34,7 +8,6 @@
       <RuaHeader />
 
       <div class="rua-body">
-        <!-- TEXTO -->
         <div class="texto">
           <br>
           <span class="sub">Clique em uma logo.</span>
@@ -44,73 +17,33 @@
             por <span>amigos.</span>
           </h1>
 
-          <button class="cta">Siga aqui</button>
+          <button class="cta" @click="irParaCadastro">
+            Siga aqui
+          </button>
         </div>
 
-        <!-- ORBITA -->
         <RuaOrbita />
       </div>
     </div>
   </section>
 </template>
+
 <script setup>
 import RuaHeader from "@/components/rua/RuaHeader.vue";
 import RuaOrbita from "@/components/rua/RuaOrbita.vue";
-import { ref, computed, onMounted, onBeforeUnmount } from "vue";
+import UserMenu from "@/components/layout/UserMenu.vue";
+
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 
 const authStore = useAuthStore();
 const router = useRouter();
 
-const menuAberto = ref(false);
-let audio = null;
-const tocando = ref(false);
-
-function toggleAudio() {
-  if (!audio) return;
-
-  if (tocando.value) {
-    audio.pause();
-    tocando.value = false;
-  } else {
-    audio.play().then(() => {
-      tocando.value = true;
-    }).catch(() => {
-      tocando.value = false;
-    });
-  }
+function irParaCadastro() {
+  router.push("/cadastrar/usuarios");
 }
-
-function toggleMenu() {
-  menuAberto.value = !menuAberto.value;
-}
-
-function logout() {
-  authStore.logout();
-  router.push("/");
-}
-
-function handleClickOutside(e) {
-  const menu = document.querySelector(".user-menu");
-  if (menu && !menu.contains(e.target)) {
-    menuAberto.value = false;
-  }
-}
-
-onMounted(() => {
-  document.addEventListener("click", handleClickOutside);
-});
-
-onBeforeUnmount(() => {
-  document.removeEventListener("click", handleClickOutside);
-});
-
-const fotoPerfilUrl = computed(() => {
-  if (!authStore.usuario?.foto?.uuid) return null;
-  return `${import.meta.env.VITE_API_BASE_URL}/fotos/${authStore.usuario.foto.uuid}`;
-});
 </script>
+
 <style scoped>
 .rua-page {
   min-height: 100vh;
@@ -265,6 +198,7 @@ h1 span {
     opacity: 0;
     transform: translateY(32px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

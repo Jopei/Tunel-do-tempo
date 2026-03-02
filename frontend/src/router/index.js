@@ -5,7 +5,12 @@ import CadastrarHistoriaView from "@/views/CadastrarHistoriaView.vue";
 import HistoriasView from "@/views/HistoriasView.vue";
 import HistoriaShowView from "@/views/HistoriaShowView.vue";
 import NaoTeEsquecemosAmigoView from "@/views/nao-te-esquecemos-amigoView.vue";
+import CadastrarUsuarioView from "@/views/CadastrarUsuarioView.vue";
 import ARuaView from "@/views/ARuaView.vue";
+import FotosGaleriaView from "@/views/FotosGaleriaView.vue";
+import VideosGaleriaView from "@/views/VideosGaleriaView.vue";
+import AdminCriarNotificacaoView from "@/views/admin/AdminCriarNotificacaoView.vue";
+import AtualizacoesView from "@/views/AtualizacoesView.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -44,9 +49,34 @@ const router = createRouter({
       component: NaoTeEsquecemosAmigoView,
     },
     {
+      path: "/cadastrar/usuarios",
+      name: "cadastrar-usuarios",
+      component: CadastrarUsuarioView,
+    },
+    {
       path: "/a-rua",
       name: "ARua",
       component: ARuaView,
+    },
+    {
+      path: "/galeria-fotos",
+      name: "fotos",
+      component: FotosGaleriaView,
+    },
+    {
+      path: "/galeria-videos",
+      name: "videos",
+      component: VideosGaleriaView,
+    },
+    {
+      path: "/notificacoes",
+      name: "notificacoes",
+      component: AdminCriarNotificacaoView,
+    },
+    {
+      path: "/atualizacoes",
+      name: "atualizacoes",
+      component: AtualizacoesView,
     },
     {
       path: "/:pathMatch(.*)*",

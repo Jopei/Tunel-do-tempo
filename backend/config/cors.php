@@ -13,13 +13,9 @@ return [
         'http://localhost:5173',
     ],
 
-    'allowed_headers' => [
-        'Content-Type',
-        'X-API-KEY',
-        'Authorization',
-        'Accept',
-        'Origin',
-    ],
+    'allowed_headers' => ['*'],
+
+    'allowed_origins_patterns' => [],
 
     'exposed_headers' => [],
 
@@ -27,4 +23,3 @@ return [
 
     'supports_credentials' => false,
 ];
-

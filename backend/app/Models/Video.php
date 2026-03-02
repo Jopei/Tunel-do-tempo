@@ -23,6 +23,7 @@ class Video extends Model
         VideoMapping::TITULO,
         VideoMapping::DESCRICAO,
         VideoMapping::PATH,
+        VideoMapping::USUARIO_CADASTROU_ID,
         VideoMapping::THUMBNAIL,
         VideoMapping::EXTERNAL_LINK,
     ];
@@ -30,6 +31,7 @@ class Video extends Model
     protected $dates = [
         VideoMapping::CREATED_AT,
         VideoMapping::UPDATED_AT,
+        VideoMapping::DELETED_AT,
     ];
 
     public function historias()

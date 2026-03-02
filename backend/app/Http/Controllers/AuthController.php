@@ -19,7 +19,6 @@ class AuthController extends Controller
                 'message' => 'Credenciais inválidas.'
             ], 401);
         }
-
         /** @var \App\Models\Usuario $usuario */
         $usuario = Auth::user();
 

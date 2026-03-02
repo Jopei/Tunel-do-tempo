@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             TipoImagemSeeder::class,
             TipoUsuarioSeeder::class,
             UsuarioSeeder::class,
+            ChaveSeeder::class
         ]);
     }
 }

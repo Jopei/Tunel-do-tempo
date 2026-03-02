@@ -102,7 +102,7 @@ class HistoriaController extends Controller
                 new HistoriaShowResource($historia)
             );
         } catch (Exception $e) {
-            return response()->json('Erro ao buscar detalhes da história', Response::HTTP_INTERNAL_SERVER_ERROR);
+            return response()->json($e, Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 

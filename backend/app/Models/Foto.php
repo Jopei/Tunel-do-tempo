@@ -17,6 +17,7 @@ class Foto extends Model
     protected $table = FotoMapping::MODEL_TABLE_NAME;
     protected $primaryKey = FotoMapping::MODEL_PRIMARY_KEY;
     public $incrementing = true;
+    protected $guarded = ['*'];
     public $timestamps = true;
 
     protected $fillable = [
@@ -25,6 +26,7 @@ class Foto extends Model
         FotoMapping::DESCRICAO,
         FotoMapping::PATH,
         FotoMapping::TIPO_IMAGEM_ID,
+        FotoMapping::USUARIO_CADASTROU_ID,
         FotoMapping::EXTERNAL_LINK,
     ];
 

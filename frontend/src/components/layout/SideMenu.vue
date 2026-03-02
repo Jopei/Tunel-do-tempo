@@ -75,10 +75,7 @@ function ir(path) {
 </script>
 <style scoped>
 .side-menu-wrapper {
-  position: fixed;
-  top: 32px;
-  right: 32px;
-  z-index: 1000;
+  position: relative;
 }
 
 /* BOTÃO DO USUÁRIO */

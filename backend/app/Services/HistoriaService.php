@@ -18,6 +18,7 @@ use App\Mapping\UsuarioHistoriaMapping;
 use App\Repositories\TipoHistoriaRepository;
 use App\Repositories\UsuarioRepository;
 use Illuminate\Support\Facades\DB;
+use Mews\Purifier\Facades\Purifier;
 
 class HistoriaService
 {

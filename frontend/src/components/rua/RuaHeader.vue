@@ -11,9 +11,9 @@
 
       <div class="nav-items">
         <span @click="irParaHome">Home</span>
-        <span>Videos</span>
+        <span @click="irParaVideos">Videos</span>
         <span @click="irParaHistorias">Historias</span>
-        <span>Fotos</span>
+        <span @click="irParaFotos">Fotos</span>
       </div>
 
       <button class="menu-mobile" @click="abrirMenu">
@@ -48,8 +48,8 @@
 
       <span @click="navegar('/')">Home</span>
       <span @click="navegar('/historias')">Historias</span>
-      <span>Videos</span>
-      <span>Fotos</span>
+      <span @click="navegar('/galeria-videos')">Videos</span>
+      <span @click="navegar('/galeria-fotos')">Fotos</span>
     </div>
 
     <!-- DOTS -->
@@ -90,6 +90,14 @@ function irParaLogin() {
 
 function irParaHome() {
   router.push("/");
+}
+
+function irParaVideos() {
+  router.push("/galeria-videos");
+}
+
+function irParaFotos() {
+  router.push("/galeria-fotos");
 }
 
 function irParaHistorias() {

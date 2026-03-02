@@ -14,6 +14,7 @@ class FotoMapping
     public const DESCRICAO = 'descricao';
     public const PATH = 'path';
     public const TIPO_IMAGEM_ID = 'tipo_imagem_id';
+    public const USUARIO_CADASTROU_ID = 'usuario_cadastrou_id';
     public const EXTERNAL_LINK = 'external_link';
     public const CREATED_AT = 'created_at';
     public const UPDATED_AT = 'updated_at';

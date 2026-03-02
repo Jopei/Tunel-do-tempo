@@ -1,29 +1,12 @@
 <template>
   <section class="home-view">
-    <div v-if="authStore.logado" class="user-menu">
-      <div class="avatar" :class="{ active: menuAberto }" @click="toggleMenu">
-        <template v-if="fotoPerfilUrl">
-          <img :src="fotoPerfilUrl" alt="Perfil" />
-        </template>
-        <template v-else>
-          <span class="avatar-icon">👤</span>
-        </template>
-      </div>
 
-      <div v-if="menuAberto" class="dropdown">
-        <span @click="irParaCriarHistoria">
-          Adicionar História
-        </span>
-        <span @click="router.push('/fotos/criar')">Adicionar Foto</span>
-        <span @click="router.push('/videos/criar')">Adicionar Vídeo</span>
-        <span @click="router.push('/galeria')">Ver Galeria</span>
-        <span @click="router.push('/configuracoes')">Configurações</span>
-        <span class="sair" @click="logout">Sair</span>
-      </div>
-    </div>
+    <TopActions />
 
     <div class="hero-content">
-      <h1 class="reveal" style="--delay: 0s">Túnel do Tempo</h1>
+      <h1 class="reveal" style="--delay: 0s">
+        Túnel do Tempo
+      </h1>
 
       <p class="subtitle reveal" style="--delay: 0.15s">
         O tempo não apaga o que a luz tocou, apenas o transforma em memória.
@@ -36,51 +19,12 @@
   </section>
 </template>
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 import { useAuthStore } from "@/stores/auth";
-import { useRouter } from "vue-router";
 import AppHeader from "@/components/layout/AppHeader.vue";
 import FeaturedVideoCard from "@/components/video/FeaturedVideoCard.vue";
+import TopActions from "@/components/layout/TopActions.vue";
 
 const authStore = useAuthStore();
-const router = useRouter();
-const menuAberto = ref(false);
-
-function handleClickOutside(e) {
-  const menu = document.querySelector(".user-menu");
-  if (menu && !menu.contains(e.target)) {
-    menuAberto.value = false;
-  }
-}
-
-onMounted(() => {
-  document.addEventListener("click", handleClickOutside);
-});
-
-onBeforeUnmount(() => {
-  document.removeEventListener("click", handleClickOutside);
-});
-
-function toggleMenu() {
-  menuAberto.value = !menuAberto.value;
-}
-
-function irParaCriarHistoria() {
-  router.push("/historias/criar");
-}
-
-function logout() {
-  authStore.logout();
-  router.push("/");
-}
-
-const fotoPerfilUrl = computed(() => {
-  if (!authStore.usuario?.foto?.uuid) {
-    return null;
-  }
-
-  return `${import.meta.env.VITE_API_BASE_URL}/fotos/${authStore.usuario.foto.uuid}`;
-});
 </script>
 <style scoped>
 .home-view {
@@ -176,6 +120,16 @@ h1 {
   transition: background 0.2s ease;
 }
 
+.top-actions {
+  position: fixed;
+  top: 28px;
+  right: 40px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  z-index: 9999;
+}
+
 .dropdown span:hover {
   background: rgba(199, 164, 58, 0.18);
 }
@@ -243,6 +197,18 @@ h1 {
 
   .dropdown {
     transform: translateX(0);
+  }
+
+  @media (max-width: 600px) {
+    .top-actions {
+      top: 18px;
+      right: 18px;
+    }
+
+    .dropdown {
+      width: 90vw;
+      right: -40px;
+    }
   }
 }
 </style>
