@@ -51,7 +51,7 @@ class CriarUsuarioAction
                 descricao: 'Imagem de perfil do usuário',
             );
 
-            $this->fotoService->criarFoto($fotoDTO);
+            $this->fotoService->criarFoto($fotoDTO, $usuario);
 
             $chave->update([
                 'quebra' => true

@@ -100,6 +100,7 @@
 import { ref } from "vue";
 import { cadastrarUsuario } from "@/services/usuario.service";
 import UserMenu from "@/components/layout/UserMenu.vue";
+import { toast } from "vue3-toastify";
 
 const mostrarSenha = ref(false);
 
@@ -118,11 +119,11 @@ const foto = ref(null);
 const fotoPreview = ref(null);
 
 const loading = ref(false);
-const sucesso = ref(false);
 const errors = ref({});
 
 function onFoto(e) {
   foto.value = e.target.files[0];
+
   if (foto.value) {
     fotoPreview.value = URL.createObjectURL(foto.value);
   }
@@ -130,7 +131,6 @@ function onFoto(e) {
 
 async function salvar() {
   loading.value = true;
-  sucesso.value = false;
   errors.value = {};
 
   const form = new FormData();
@@ -147,12 +147,33 @@ async function salvar() {
 
   try {
     await cadastrarUsuario(form);
-    sucesso.value = true;
+
+    toast.success("Usuário cadastrado com sucesso 🎉");
+
     limpar();
   } catch (e) {
+
     if (e.response?.status === 422) {
+
       errors.value = e.response.data.errors || {};
+
+      const apiErrors = e.response.data.errors;
+
+      const primeiraMensagem =
+        Object.values(apiErrors)[0]?.[0] || "Erro de validação.";
+
+      toast.error(primeiraMensagem);
+
+    } else {
+
+      const mensagem =
+        e.response?.data?.message ||
+        "Erro inesperado ao cadastrar usuário.";
+
+      toast.error(mensagem);
+
     }
+
   } finally {
     loading.value = false;
   }

@@ -60,9 +60,9 @@ class FotoService
         return $foto;
     }
 
-    public function criarFoto(FotoCreateDTO $dto)
+    public function criarFoto(FotoCreateDTO $dto, $usuario = null)
     {
-        $usuarioId = auth()->user()->id;
+        $usuarioId = $usuario ? $usuario->id : auth()->user()->id;
         
         $nomeArquivo = Str::uuid() . '.' . $dto->imagem->extension();
 
