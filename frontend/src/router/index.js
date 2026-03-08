@@ -11,6 +11,7 @@ import FotosGaleriaView from "@/views/FotosGaleriaView.vue";
 import VideosGaleriaView from "@/views/VideosGaleriaView.vue";
 import AdminCriarNotificacaoView from "@/views/admin/AdminCriarNotificacaoView.vue";
 import AtualizacoesView from "@/views/AtualizacoesView.vue";
+import ConfiguracoesView from "@/views/ConfiguracoesView.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -77,6 +78,11 @@ const router = createRouter({
       path: "/atualizacoes",
       name: "atualizacoes",
       component: AtualizacoesView,
+    },
+    {
+      path: "/configuracoes",
+      name: "configuracoes",
+      component: ConfiguracoesView,
     },
     {
       path: "/:pathMatch(.*)*",

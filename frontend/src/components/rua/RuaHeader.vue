@@ -121,10 +121,11 @@ function navegar(path) {
 /* NAV */
 .nav {
   display: flex;
-  align-items: center;
+  align-items: start;
   justify-content: center;
   position: relative;
   padding: 24px 48px;
+  z-index: 9999;
 }
 
 .nav-items {

@@ -50,6 +50,10 @@
             Adicionar Atualização
           </span>
 
+          <span @click="navegar('/configuracoes')">
+            Editar Perfil
+          </span>
+
         </div>
 
         <span class="sair" @click="logout">Sair</span>

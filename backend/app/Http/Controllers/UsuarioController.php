@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Usuario\CriarUsuarioAction;
+use App\DTO\Usuario\AtualizarUsuarioDTO;
 use App\Http\Requests\UsuarioStoreRequest;
 use App\Services\UsuarioService;
 use App\DTO\UsuarioCreateDTO;
+use App\Http\Requests\Usuario\AtualizarFotoPerfilRequest;
+use App\Http\Requests\Usuario\AtualizarUsuarioRequest;
 use App\Http\Resources\UsuarioGetResource;
 use App\Http\Resources\UsuarioListResource;
 use App\Http\Resources\UsuarioResource;
@@ -51,7 +54,6 @@ class UsuarioController extends Controller
         }
     }
 
-
     public function getUsuario(string $uuid): JsonResponse
     {
         try {
@@ -65,5 +67,43 @@ class UsuarioController extends Controller
                 'message' => 'Usuário não encontrado.'
             ], 404);
         }
+    }
+
+    public function atualizar(
+        AtualizarUsuarioRequest $request,
+        UsuarioService $service,
+        string $uuid
+    ): JsonResponse {
+        $dto = new AtualizarUsuarioDTO(
+            uuid: $uuid,
+            nome: $request->nome,
+            email: $request->email,
+            senha: $request->senha,
+            aniversario: $request->aniversario,
+            telefone: $request->telefone,
+            descricao: $request->descricao
+        );
+
+        $usuario = $service->atualizar($dto, auth()->user());
+
+        return response()->json($usuario);
+    }
+
+    public function atualizarFotoPerfil(
+        AtualizarFotoPerfilRequest $request,
+        UsuarioService $service,
+        string $uuid
+    ): JsonResponse {
+
+        $foto = $service->atualizarFotoPerfil(
+            $uuid,
+            $request->file('foto'),
+            auth()->user()
+        );
+
+        return response()->json([
+            'mensagem' => 'Foto atualizada com sucesso.',
+            'foto' => $foto
+        ]);
     }
 }

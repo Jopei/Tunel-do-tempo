@@ -63,4 +63,10 @@ class UsuarioRepository
     {
         return Usuario::whereIn('uuid', $uuids)->pluck('id')->toArray();
     }
+
+    public function atualizarPorUuid(string $uuid, array $dados)
+    {
+        return Usuario::where(UsuarioMapping::UUID, $uuid)
+            ->update($dados);
+    }
 }

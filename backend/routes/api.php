@@ -64,7 +64,9 @@ Route::middleware(['api.key.auth'])->group(function () {
 
         Route::prefix('usuarios')->group(function () {
             Route::get('/', [UsuarioController::class, 'index'])->name('usuarios.index');
+            Route::put('/{uuid}', [UsuarioController::class, 'atualizar'])->name('api.usuarios.update');
             Route::get('/{uuid}', [UsuarioController::class, 'getUsuario'])->name('usuarios.get');
+            Route::post('/{uuid}/foto-perfil', [UsuarioController::class, 'atualizarFotoPerfil'])->name('usuarios.foto.perfil.store');
             Route::post('/foto-perfil', [FotoController::class, 'storeFotoPerfil'])->name('usuarios.foto.perfil.store');
         });
 

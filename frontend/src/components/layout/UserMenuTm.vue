@@ -6,7 +6,7 @@
       <img v-if="fotoPerfilUrl" :src="fotoPerfilUrl" />
       <span v-else>👤</span>
     </div>
-    
+
     <!-- MENU PRINCIPAL -->
     <div v-if="menuAberto" class="dropdown">
       <span @click="navegar('/')">Home</span>
@@ -48,6 +48,10 @@
 
           <span @click="abrirAtualizacao">
             Adicionar Atualização
+          </span>
+
+          <span @click="navegar('/configuracoes')">
+            Editar Perfil
           </span>
 
         </div>
@@ -183,7 +187,7 @@ onBeforeUnmount(() => {
   background: #fbf6e6;
   border-radius: 18px;
   padding: 14px 0;
-  box-shadow: 0 20px 60px rgba(0,0,0,.25);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .25);
   animation: fadeDown .2s ease;
 }
 
@@ -196,17 +200,17 @@ onBeforeUnmount(() => {
 }
 
 .dropdown span:hover {
-  background: rgba(199,164,58,.18);
+  background: rgba(199, 164, 58, .18);
 }
 
 .submenu {
-  background: rgba(199,164,58,.08);
+  background: rgba(199, 164, 58, .08);
   padding-left: 16px;
 }
 
 .divider {
   height: 1px;
-  background: rgba(0,0,0,.1);
+  background: rgba(0, 0, 0, .1);
   margin: 8px 0;
 }
 
@@ -219,6 +223,7 @@ onBeforeUnmount(() => {
     opacity: 0;
     transform: translateY(-6px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
