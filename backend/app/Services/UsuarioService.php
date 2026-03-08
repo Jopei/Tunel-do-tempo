@@ -58,7 +58,7 @@ class UsuarioService
         ];
 
         if ($dto->senha) {
-            $dados['senha'] = Hash::make($dto->senha) ;
+            $dados['senha'] = Hash::make($dto->senha);
         }
 
         $this->usuarioRepository->atualizarPorUuid($dto->uuid, $dados);
