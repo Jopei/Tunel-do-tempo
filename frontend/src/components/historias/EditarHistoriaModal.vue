@@ -82,6 +82,7 @@
 import { ref, watch, computed } from "vue";
 import { useDisplay } from "vuetify";
 import { atualizarHistoria } from "@/services/historia.service";
+import { toast } from "vue3-toastify";
 
 const { mobile } = useDisplay();
 const isMobile = computed(() => mobile.value);
@@ -95,6 +96,7 @@ const emit = defineEmits(["update:modelValue", "confirmar"]);
 
 const aberto = ref(false);
 const loading = ref(false);
+const errors = ref({});
 
 const form = ref({
   titulo: "",
@@ -137,6 +139,7 @@ async function confirmar() {
   if (!props.historia?.uuid) return;
 
   loading.value = true;
+  errors.value = {};
 
   try {
     await atualizarHistoria(props.historia.uuid, {
@@ -146,8 +149,34 @@ async function confirmar() {
       usuarios: form.value.usuarios,
     });
 
+    toast.success("História atualizada com sucesso ✨");
+
     emit("update:modelValue", false);
     emit("confirmar");
+
+  } catch (e) {
+
+    if (e.response?.status === 422) {
+
+      errors.value = e.response.data.errors || {};
+
+      const apiErrors = e.response.data.errors;
+
+      const primeiraMensagem =
+        Object.values(apiErrors)[0]?.[0] || "Erro de validação.";
+
+      toast.error(primeiraMensagem);
+
+    } else {
+
+      const mensagem =
+        e.response?.data?.message ||
+        "Erro inesperado ao atualizar história.";
+
+      toast.error(mensagem);
+
+    }
+
   } finally {
     loading.value = false;
   }

@@ -5,10 +5,6 @@
     <div class="card">
       <h1>Cadastrar Usuário</h1>
 
-      <div v-if="sucesso" class="sucesso-msg">
-        Usuário cadastrado com sucesso 🎉
-      </div>
-
       <!-- FOTO PERFIL -->
       <div class="foto-perfil-container">
         <label class="foto-upload">

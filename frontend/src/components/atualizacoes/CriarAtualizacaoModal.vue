@@ -8,10 +8,6 @@
 
       <h1>Nova Atualização</h1>
 
-      <div v-if="sucesso" class="sucesso-msg">
-        Atualização publicada 🚀
-      </div>
-
       <div class="field">
         <label>Título</label>
         <input v-model="titulo" />
@@ -43,6 +39,7 @@ import { ref, computed, watch, nextTick } from "vue";
 import { Editor } from "@toast-ui/editor";
 import "@toast-ui/editor/dist/toastui-editor.css";
 import { criarAtualizacao } from "@/services/atualizacao.service";
+import { toast } from "vue3-toastify";
 
 const props = defineProps({
   modelValue: Boolean
@@ -58,12 +55,12 @@ const dialog = computed({
 const titulo = ref("");
 const linkMusica = ref("");
 const loading = ref(false);
-const sucesso = ref(false);
+const errors = ref({});
 
 const editorRef = ref(null);
 let editor = null;
 
-/* 🔥 INICIALIZA SOMENTE QUANDO ABRIR */
+/* inicializa editor somente quando abrir */
 watch(dialog, async (val) => {
   if (val) {
     await nextTick();
@@ -82,16 +79,18 @@ watch(dialog, async (val) => {
 
 async function salvar() {
   loading.value = true;
-  sucesso.value = false;
+  errors.value = {};
 
   try {
+
     await criarAtualizacao({
       titulo: titulo.value,
       conteudo_markdown: editor.getMarkdown(),
       link_musica: linkMusica.value
     });
 
-    sucesso.value = true;
+    toast.success("Atualização publicada com sucesso 🚀");
+
     emit("sucesso");
 
     setTimeout(() => {
@@ -100,7 +99,28 @@ async function salvar() {
     }, 800);
 
   } catch (e) {
-    console.error(e);
+
+    if (e.response?.status === 422) {
+
+      errors.value = e.response.data.errors || {};
+
+      const apiErrors = e.response.data.errors;
+
+      const primeiraMensagem =
+        Object.values(apiErrors)[0]?.[0] || "Erro de validação.";
+
+      toast.error(primeiraMensagem);
+
+    } else {
+
+      const mensagem =
+        e.response?.data?.message ||
+        "Erro inesperado ao publicar atualização.";
+
+      toast.error(mensagem);
+
+    }
+
   } finally {
     loading.value = false;
   }
@@ -109,6 +129,7 @@ async function salvar() {
 function limpar() {
   titulo.value = "";
   linkMusica.value = "";
+
   if (editor) editor.setMarkdown("");
 }
 

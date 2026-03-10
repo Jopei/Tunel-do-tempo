@@ -8,10 +8,6 @@
 
       <h1>Cadastrar Foto</h1>
 
-      <div v-if="sucesso" class="sucesso-msg">
-        Foto cadastrada com sucesso 🎉
-      </div>
-
       <!-- FOTO -->
       <div class="foto-container">
         <label class="foto-upload">
@@ -53,6 +49,7 @@
 <script setup>
 import { ref, computed } from "vue";
 import { cadastrarFoto } from "@/services/foto.service";
+import { toast } from "vue3-toastify";
 
 const props = defineProps({
   modelValue: Boolean
@@ -72,11 +69,11 @@ const foto = ref(null);
 const fotoPreview = ref(null);
 
 const loading = ref(false);
-const sucesso = ref(false);
 const errors = ref({});
 
 function onFoto(e) {
   foto.value = e.target.files[0];
+
   if (foto.value) {
     fotoPreview.value = URL.createObjectURL(foto.value);
   }
@@ -84,7 +81,6 @@ function onFoto(e) {
 
 async function salvar() {
   loading.value = true;
-  sucesso.value = false;
   errors.value = {};
 
   const form = new FormData();
@@ -94,15 +90,40 @@ async function salvar() {
   form.append("imagem", foto.value);
 
   try {
+
     await cadastrarFoto(form);
-    sucesso.value = true;
+
+    toast.success("Foto cadastrada com sucesso 📸");
+
     emit("sucesso");
+
     limpar();
+
     setTimeout(() => fechar(), 800);
+
   } catch (e) {
+
     if (e.response?.status === 422) {
+
       errors.value = e.response.data.errors || {};
+
+      const apiErrors = e.response.data.errors;
+
+      const primeiraMensagem =
+        Object.values(apiErrors)[0]?.[0] || "Erro de validação.";
+
+      toast.error(primeiraMensagem);
+
+    } else {
+
+      const mensagem =
+        e.response?.data?.message ||
+        "Erro inesperado ao cadastrar foto.";
+
+      toast.error(mensagem);
+
     }
+
   } finally {
     loading.value = false;
   }
@@ -111,7 +132,7 @@ async function salvar() {
 function limpar() {
   titulo.value = "";
   descricao.value = "";
-  tipoImagemId.value = "";
+  tipoImagemId.value = 3;
   foto.value = null;
   fotoPreview.value = null;
 }

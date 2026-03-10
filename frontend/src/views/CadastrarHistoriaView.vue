@@ -1,12 +1,9 @@
 <template>
   <section class="cadastrar-historia-page">
     <UserMenu />
+
     <div class="card">
       <h1>Cadastrar História</h1>
-
-      <div v-if="sucesso" class="sucesso-msg">
-        História cadastrada com sucesso 🎉
-      </div>
 
       <div class="grid">
         <div class="field">
@@ -22,7 +19,11 @@
 
       <div class="field">
         <label>Descrição curta</label>
-        <textarea v-model="descricaoCurta" rows="2" :class="{ erro: errors.descricao_curta }"></textarea>
+        <textarea
+          v-model="descricaoCurta"
+          rows="2"
+          :class="{ erro: errors.descricao_curta }"
+        ></textarea>
       </div>
 
       <div class="field">
@@ -34,13 +35,11 @@
         </select>
       </div>
 
-      <!-- RICH TEXT -->
       <div class="field destaque">
         <label>Conteúdo da História</label>
         <div ref="editorRef" class="editor"></div>
       </div>
 
-      <!-- USUÁRIOS -->
       <div class="field">
         <label>Usuários da História</label>
 
@@ -52,7 +51,6 @@
         </div>
       </div>
 
-      <!-- UPLOADS -->
       <div class="uploads">
         <label class="upload-box">
           <span class="icon">🖼️</span>
@@ -107,6 +105,7 @@ import "quill/dist/quill.snow.css";
 import api from "@/services/api";
 import { listarUsuarios } from "@/services/usuario.service";
 import UserMenu from "@/components/layout/UserMenu.vue";
+import { toast } from "vue3-toastify";
 
 const titulo = ref("");
 const descricaoCurta = ref("");
@@ -124,7 +123,6 @@ const fotosPreview = ref([]);
 const videosPreview = ref([]);
 
 const loading = ref(false);
-const sucesso = ref(false);
 const errors = ref({});
 
 const editorRef = ref(null);
@@ -136,13 +134,13 @@ onMounted(async () => {
     placeholder: "Escreva a história aqui...",
     modules: {
       toolbar: [
-        [{ header: [1,2,3,false] }],
-        ["bold","italic","underline"],
-        [{ list:"ordered" },{ list:"bullet" }],
-        ["link","image"],
-        ["clean"]
-      ]
-    }
+        [{ header: [1, 2, 3, false] }],
+        ["bold", "italic", "underline"],
+        [{ list: "ordered" }, { list: "bullet" }],
+        ["link", "image"],
+        ["clean"],
+      ],
+    },
   });
 
   carregarUsuarios();
@@ -152,80 +150,92 @@ async function carregarUsuarios() {
   usuarios.value = await listarUsuarios();
 }
 
-function onFotos(e){
+function onFotos(e) {
   fotos.value = Array.from(e.target.files);
-  fotosPreview.value = fotos.value.map(f=>URL.createObjectURL(f));
+  fotosPreview.value = fotos.value.map((f) => URL.createObjectURL(f));
 }
 
-function onVideos(e){
+function onVideos(e) {
   videos.value = Array.from(e.target.files);
-  videosPreview.value = videos.value.map(v=>URL.createObjectURL(v));
+  videosPreview.value = videos.value.map((v) => URL.createObjectURL(v));
 }
 
-function onMusicas(e){
+function onMusicas(e) {
   musicas.value = Array.from(e.target.files);
 }
 
-function removerFoto(i){
-  fotos.value.splice(i,1);
-  fotosPreview.value.splice(i,1);
+function removerFoto(i) {
+  fotos.value.splice(i, 1);
+  fotosPreview.value.splice(i, 1);
 }
 
-function removerVideo(i){
-  videos.value.splice(i,1);
-  videosPreview.value.splice(i,1);
+function removerVideo(i) {
+  videos.value.splice(i, 1);
+  videosPreview.value.splice(i, 1);
 }
 
-function removerMusica(i){
-  musicas.value.splice(i,1);
+function removerMusica(i) {
+  musicas.value.splice(i, 1);
 }
 
-async function salvar(){
-  loading.value=true;
-  sucesso.value=false;
-  errors.value={};
+async function salvar() {
+  loading.value = true;
+  errors.value = {};
 
-  const form=new FormData();
-  form.append("titulo",titulo.value);
-  form.append("descricao_curta",descricaoCurta.value);
-  form.append("conteudo",editor.root.innerHTML);
-  form.append("data_historia",dataHistoria.value);
-  form.append("tipo_historia",tipoHistoria.value);
+  const form = new FormData();
+  form.append("titulo", titulo.value);
+  form.append("descricao_curta", descricaoCurta.value);
+  form.append("conteudo", editor.root.innerHTML);
+  form.append("data_historia", dataHistoria.value);
+  form.append("tipo_historia", tipoHistoria.value);
 
-  usuariosSelecionados.value.forEach(u=>{
-    form.append("usuarios[]",u);
+  usuariosSelecionados.value.forEach((u) => {
+    form.append("usuarios[]", u);
   });
 
-  fotos.value.forEach(f=>form.append("fotos[]",f));
-  videos.value.forEach(v=>form.append("videos[]",v));
-  musicas.value.forEach(m=>form.append("musicas[]",m));
+  fotos.value.forEach((f) => form.append("fotos[]", f));
+  videos.value.forEach((v) => form.append("videos[]", v));
+  musicas.value.forEach((m) => form.append("musicas[]", m));
 
-  try{
-    const response=await api.post("/cadastrar/historias",form);
-    if(response.status===201||response.status===200){
-      sucesso.value=true;
-      limparFormulario();
+  try {
+    await api.post("/cadastrar/historias", form);
+
+    toast.success("História cadastrada com sucesso 🎉");
+
+    limparFormulario();
+  } catch (e) {
+    if (e.response?.status === 422) {
+      errors.value = e.response.data.errors || {};
+
+      const apiErrors = e.response.data.errors;
+
+      const primeiraMensagem =
+        Object.values(apiErrors)[0]?.[0] || "Erro de validação.";
+
+      toast.error(primeiraMensagem);
+    } else {
+      const mensagem =
+        e.response?.data?.message ||
+        "Erro inesperado ao cadastrar história.";
+
+      toast.error(mensagem);
     }
-  }catch(e){
-    if(e.response?.status===422){
-      errors.value=e.response.data.errors||{};
-    }
-  }finally{
-    loading.value=false;
+  } finally {
+    loading.value = false;
   }
 }
 
-function limparFormulario(){
-  titulo.value="";
-  descricaoCurta.value="";
-  dataHistoria.value="";
-  tipoHistoria.value="Pessoal";
-  usuariosSelecionados.value=[];
-  fotos.value=[];
-  videos.value=[];
-  musicas.value=[];
-  fotosPreview.value=[];
-  videosPreview.value=[];
+function limparFormulario() {
+  titulo.value = "";
+  descricaoCurta.value = "";
+  dataHistoria.value = "";
+  tipoHistoria.value = "Pessoal";
+  usuariosSelecionados.value = [];
+  fotos.value = [];
+  videos.value = [];
+  musicas.value = [];
+  fotosPreview.value = [];
+  videosPreview.value = [];
   editor.setContents([]);
 }
 </script>
