@@ -20,7 +20,11 @@ use App\Http\Controllers\VideoController;
 */
 
 Route::post('/api-keys/gerar', [ApiKeyController::class, 'gerar']);
-Route::get('/fotos/{uuid}', [FotoController::class, 'show'])->name('api.fotos.show');
+Route::prefix('fotos')->group(function () {
+    Route::get('/', [FotoController::class, 'index'])->name('api.fotos.index');
+    Route::get('/{uuid}', [FotoController::class, 'show'])->name('api.fotos.show');
+    Route::get('/{uuid}/details', [FotoController::class, 'details'])->name('api.fotos.details');
+});
 Route::get('/videos/{uuid}', [VideoController::class, 'show'])->name('api.videos.show');
 Route::get('/atualizacoes', [AtualizacaoController::class, 'index']);
 
@@ -47,9 +51,8 @@ Route::middleware(['api.key.auth'])->group(function () {
             });
 
             Route::prefix('fotos')->group(function () {
-                Route::get('/', [FotoController::class, 'index'])->name('api.fotos.index');
+
                 Route::post('/', [FotoController::class, 'store'])->name('api.fotos.store');
-                Route::get('/{uuid}/details', [FotoController::class, 'details'])->name('api.fotos.details');
                 Route::put('/{uuid}', [FotoController::class, 'update'])->name('api.fotos.update');
                 Route::delete('/{uuid}', [FotoController::class, 'destroy'])->name('api.fotos.destroy');
             });

@@ -78,6 +78,7 @@ class FotoService
             'path' => $path,
             'tipo_imagem_id' => $dto->tipoImagemId,
             'usuario_cadastrou_id' => $usuarioId,
+            'criado_em' => $dto->criadoEm,
         ]);
 
         if (!empty($dto->usuariosUuid)) {

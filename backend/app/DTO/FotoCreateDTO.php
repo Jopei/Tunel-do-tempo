@@ -12,5 +12,6 @@ class FotoCreateDTO
         public ?array $usuariosUuid = null,
         public ?string $titulo = null,
         public ?string $descricao = null,
+        public ?string $criadoEm = null
     ) {}
 }

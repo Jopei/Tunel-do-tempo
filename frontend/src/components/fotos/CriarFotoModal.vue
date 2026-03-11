@@ -8,14 +8,9 @@
 
       <h1>Cadastrar Foto</h1>
 
-      <!-- FOTO -->
       <div class="foto-container">
         <label class="foto-upload">
-          <img
-            v-if="fotoPreview"
-            :src="fotoPreview"
-            class="foto-preview"
-          />
+          <img v-if="fotoPreview" :src="fotoPreview" class="foto-preview" />
 
           <div v-else class="foto-placeholder">
             <span>Adicionar Foto *</span>
@@ -33,6 +28,15 @@
       <div class="field">
         <label>Descrição</label>
         <textarea v-model="descricao" rows="2"></textarea>
+      </div>
+
+      <div class="field">
+        <label>Data da Foto</label>
+        <input
+          v-model="dataFoto"
+          type="date"
+          :class="{ erro: errors.criado_em }"
+        />
       </div>
 
       <div class="botao-container">
@@ -67,6 +71,7 @@ const descricao = ref("");
 const tipoImagemId = ref(3);
 const foto = ref(null);
 const fotoPreview = ref(null);
+const dataFoto = ref("");
 
 const loading = ref(false);
 const errors = ref({});
@@ -88,6 +93,10 @@ async function salvar() {
   form.append("descricao", descricao.value);
   form.append("tipo_imagem_id", tipoImagemId.value);
   form.append("imagem", foto.value);
+
+  if (dataFoto.value) {
+    form.append("criado_em", dataFoto.value + " 00:00:00");
+  }
 
   try {
 
@@ -135,6 +144,7 @@ function limpar() {
   tipoImagemId.value = 3;
   foto.value = null;
   fotoPreview.value = null;
+  dataFoto.value = "";
 }
 
 function fechar() {
@@ -143,13 +153,12 @@ function fechar() {
 </script>
 
 <style scoped>
-
 .card {
   position: relative;
   background: #fbf6e6;
   padding: 50px;
   border-radius: 28px;
-  box-shadow: 0 30px 80px rgba(0,0,0,.3);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, .3);
 }
 
 h1 {
@@ -179,8 +188,9 @@ h1 {
 .foto-preview {
   width: 180px;
   height: 180px;
-  border-radius: 16px; /* 🔥 agora quadrado arredondado */
-  background: rgba(199,164,58,.15);
+  border-radius: 16px;
+  /* 🔥 agora quadrado arredondado */
+  background: rgba(199, 164, 58, .15);
   border: 3px dashed #c7a43a;
   display: flex;
   align-items: center;
@@ -242,12 +252,13 @@ button:disabled {
   position: relative;
   background: #fbf6e6;
   padding: 50px;
-  border-radius: 32px; /* mais arredondado */
-  box-shadow: 0 30px 80px rgba(0,0,0,.3);
+  border-radius: 32px;
+  /* mais arredondado */
+  box-shadow: 0 30px 80px rgba(0, 0, 0, .3);
 }
 
 .sucesso-msg {
-  background: rgba(46,204,113,.2);
+  background: rgba(46, 204, 113, .2);
   border: 2px solid #2ecc71;
   padding: 12px;
   border-radius: 12px;
@@ -257,7 +268,6 @@ button:disabled {
 
 .erro {
   border-color: #c0392b !important;
-  box-shadow: 0 0 0 2px rgba(192,57,43,.25);
+  box-shadow: 0 0 0 2px rgba(192, 57, 43, .25);
 }
-
 </style>

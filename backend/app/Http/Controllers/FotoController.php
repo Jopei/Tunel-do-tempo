@@ -57,6 +57,7 @@ class FotoController extends Controller
                 usuariosUuid: $request->usuarios_uuid,
                 titulo: $request->titulo,
                 descricao: $request->descricao,
+                criadoEm: $request->criado_em,
             );
 
             $foto = $this->fotoService->criarFoto($dto);

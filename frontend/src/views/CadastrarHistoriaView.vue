@@ -19,11 +19,7 @@
 
       <div class="field">
         <label>Descrição curta</label>
-        <textarea
-          v-model="descricaoCurta"
-          rows="2"
-          :class="{ erro: errors.descricao_curta }"
-        ></textarea>
+        <textarea v-model="descricaoCurta" rows="2" :class="{ erro: errors.descricao_curta }"></textarea>
       </div>
 
       <div class="field">
@@ -79,12 +75,12 @@
       </div>
 
       <div class="preview">
-        <div v-for="(f, i) in fotosPreview" :key="'f'+i" class="preview-item">
+        <div v-for="(f, i) in fotosPreview" :key="'f' + i" class="preview-item">
           <img :src="f" />
           <button type="button" class="remove-btn" @click="removerFoto(i)">×</button>
         </div>
 
-        <div v-for="(v, i) in videosPreview" :key="'v'+i" class="preview-item">
+        <div v-for="(v, i) in videosPreview" :key="'v' + i" class="preview-item">
           <video :src="v" controls />
           <button type="button" class="remove-btn" @click="removerVideo(i)">×</button>
         </div>
@@ -524,7 +520,32 @@ select:focus {
   border-color: #c7a43a;
   box-shadow: 0 0 0 2px rgba(199, 164, 58, 0.25);
 }
+.usuarios-checkbox {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 10px;
+  }
 
+  .checkbox-item {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    column-gap: 12px;
+
+    width: 100%;
+    background: rgba(199, 164, 58, 0.15);
+    padding: 16px 14px;
+    border-radius: 14px;
+
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  .usuarios-checkbox {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
 /* hover */
 select:hover {
   border-color: #c7a43a;
@@ -551,17 +572,17 @@ button:disabled {
   cursor: not-allowed;
 }
 
-:deep(.ql-toolbar){
-  border:none;
-  background:rgba(199,164,58,0.15);
-  border-radius:12px 12px 0 0;
+:deep(.ql-toolbar) {
+  border: none;
+  background: rgba(199, 164, 58, 0.15);
+  border-radius: 12px 12px 0 0;
 }
 
-:deep(.ql-container){
-  border:none;
-  min-height:300px;
-  border-radius:0 0 12px 12px;
-  font-size:16px;
+:deep(.ql-container) {
+  border: none;
+  min-height: 300px;
+  border-radius: 0 0 12px 12px;
+  font-size: 16px;
 }
 
 /* ========================= */
@@ -589,11 +610,30 @@ button:disabled {
   }
 
   .usuarios-checkbox {
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 10px;
   }
 
   .checkbox-item {
-    max-width: 100%;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    column-gap: 12px;
+
+    width: 100%;
+    background: rgba(199, 164, 58, 0.15);
+    padding: 16px 14px;
+    border-radius: 14px;
+
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  .usuarios-checkbox {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
   }
 
   .preview img,
@@ -604,10 +644,9 @@ button:disabled {
   button {
     width: 100%;
   }
+
   .editor {
     overflow-x: hidden;
   }
 }
-
-
 </style>

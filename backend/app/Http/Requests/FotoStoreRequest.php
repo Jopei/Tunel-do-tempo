@@ -20,6 +20,7 @@ class FotoStoreRequest extends FormRequest
             'usuarios_uuid.*' => ['exists:usuarios,uuid'],
             'titulo' => ['nullable', 'string', 'max:255'],
             'descricao' => ['nullable', 'string'],
+            'criado_em' => ['date'],
         ];
     }
 
@@ -30,6 +31,8 @@ class FotoStoreRequest extends FormRequest
             'imagem.image' => 'Arquivo inválido.',
             'imagem.mimes' => 'Formatos permitidos: jpg, jpeg, png.',
             'tipo_imagem_id.required' => 'Tipo da imagem é obrigatório.',
+            'tipo_imagem_id.exists' => 'Tipo da imagem inválido.',
+            
         ];
     }
 }

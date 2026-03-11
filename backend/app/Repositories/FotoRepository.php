@@ -18,6 +18,7 @@ class FotoRepository
             FotoMapping::TIPO_IMAGEM_ID => $data['tipo_imagem_id'],
             FotoMapping::USUARIO_CADASTROU_ID => $data['usuario_cadastrou_id'],
             FotoMapping::EXTERNAL_LINK => $data['external_link'] ?? 0,
+            FotoMapping::CREATED_AT => $data['criado_em'] ?? now(),
         ]);
     }
 
