@@ -1,154 +1,56 @@
 <template>
-  <div class="orbita">
-    <!-- CENTRAL -->
-    <div class="central" @click="onCentralClick" ref="centralRef">
-      <img src="/imgs/1.svg" />
-    </div>
+  <div class="orbita" :class="{ pausada }">
+    <button ref="centralRef" type="button" class="central" aria-label="Abrir: Aquele que sonhou" @click="irCentro">
+      <img src="/imgs/1.svg" alt="" width="240" height="240" />
+    </button>
 
-    <!-- ANEL 1 -->
-    <div class="anel a1">
+    <div v-for="(item, i) in itens" :key="item.rotulo" class="anel" :class="`a${i + 1}`" aria-hidden="false">
       <div class="avatar-wrapper">
-        <img
-          src="/login/7.jpg"
-          class="avatar"
-          @click.stop="onA1Click"
-        />
-      </div>
-    </div>
-
-    <!-- ANEL 2 -->
-    <div class="anel a2">
-      <div class="avatar-wrapper">
-        <img
-          src="/login/3.jpg"
-          class="avatar"
-          @click.stop="onA2Click"
-        />
-      </div>
-    </div>
-
-    <!-- ANEL 3 -->
-    <div class="anel a3">
-      <div class="avatar-wrapper">
-        <img
-          src="/login/4.jpg"
-          class="avatar"
-          @click.stop="onA3Click"
-        />
+        <button
+          type="button"
+          class="avatar-btn"
+          :aria-label="`Abrir: ${item.rotulo} (em breve)`"
+          @click="irItem($event, item)"
+        >
+          <img :src="item.img" alt="" class="avatar" width="56" height="56" loading="lazy" />
+        </button>
       </div>
     </div>
   </div>
 </template>
+
 <script setup>
-import { ref } from "vue";
-import gsap from "gsap";
+import { ref, onMounted, onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
+import { transicionarPara } from "@/composables/useTransicao";
 
 const router = useRouter();
 const centralRef = ref(null);
+const pausada = ref(false);
 
-function onCentralClick() {
-  const centralEl = centralRef.value;
-  const img = centralEl.querySelector("img");
-  const rect = img.getBoundingClientRect();
+// Destinos ainda não definidos pelo dono do produto: levam à página "Em breve".
+const itens = [
+  { rotulo: "Primeira parada", img: "/login/7.jpg", to: "/em-breve" },
+  { rotulo: "Segunda parada", img: "/login/3.jpg", to: "/em-breve" },
+  { rotulo: "Terceira parada", img: "/login/4.jpg", to: "/em-breve" },
+];
 
-  const overlay = document.getElementById("transition-overlay");
-  const overlayImg = document.getElementById("transition-image");
-
-  overlayImg.src = img.src;
-
-  gsap.set(overlayImg, {
-    position: "fixed",
-    top: rect.top,
-    left: rect.left,
-    width: rect.width,
-    height: rect.height,
-  });
-
-  overlay.style.display = "flex";
-
-  gsap.timeline({
-    onComplete: () => router.push("/aquele-que-sonhou"),
-  })
-  .to(overlay, {
-    backgroundColor: "#000",
-    duration: 0.4,
-    ease: "power1.out",
-  })
-  .to(
-    overlayImg,
-    {
-      top: "80%",
-      left: "50%",
-      xPercent: -50,
-      yPercent: -50,
-      width: 180,
-      height: 180,
-      scale: 2,
-      duration: 1.3,
-      ease: "power1.inOut",
-    },
-    "<"
-  );
+function irCentro() {
+  transicionarPara(router, "/aquele-que-sonhou", centralRef.value?.querySelector("img"), { posicao: "baixo" });
 }
 
-function onA1Click(event) {
-  transicionarPara("/rota-1", event.currentTarget);
+function irItem(event, item) {
+  transicionarPara(router, item.to, event.currentTarget.querySelector("img"));
 }
 
-function onA2Click(event) {
-  transicionarPara("/rota-2", event.currentTarget);
+// Economiza bateria: pausa a órbita quando a aba está oculta.
+function aoMudarVisibilidade() {
+  pausada.value = document.visibilityState === "hidden";
 }
-
-function onA3Click(event) {
-  transicionarPara("/rota-3", event.currentTarget);
-}
-
-function transicionarPara(url, imgEl) {
-  const overlay = document.getElementById("transition-overlay");
-  const overlayImg = document.getElementById("transition-image");
-
-  if (!overlay || !overlayImg) {
-    router.push(url);
-    return;
-  }
-
-  const rect = imgEl.getBoundingClientRect();
-  overlayImg.src = imgEl.src;
-
-  gsap.set(overlayImg, {
-    position: "fixed",
-    top: rect.top,
-    left: rect.left,
-    width: rect.width,
-    height: rect.height,
-  });
-
-  overlay.style.display = "flex";
-
-  gsap.timeline({
-    onComplete: () => router.push(url),
-  })
-  .to(overlay, {
-    backgroundColor: "#000",
-    duration: 0.4,
-    ease: "power2.out",
-  })
-  .to(
-    overlayImg,
-    {
-      top: "50%",
-      left: "50%",
-      xPercent: -50,
-      yPercent: -50,
-      scale: 2.4,
-      duration: 1,
-      ease: "power3.inOut",
-    },
-    "<"
-  );
-}
+onMounted(() => document.addEventListener("visibilitychange", aoMudarVisibilidade));
+onBeforeUnmount(() => document.removeEventListener("visibilitychange", aoMudarVisibilidade));
 </script>
+
 <style scoped>
 .orbita {
   position: relative;
@@ -159,51 +61,50 @@ function transicionarPara(url, imgEl) {
   justify-content: center;
 }
 
-/* CENTRAL */
 .central {
   width: 260px;
   height: 260px;
   border-radius: 50%;
+  border: 0;
+  padding: 0;
   background: #222;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 10;
   cursor: pointer;
+  transition: transform var(--tm-dur-base) var(--tm-ease), box-shadow var(--tm-dur-base) var(--tm-ease);
 }
-
 .central:hover {
   transform: scale(1.04);
   box-shadow: 0 0 0 6px rgba(199, 164, 58, 0.35);
 }
-
 .central img {
   width: 92%;
   height: 92%;
   border-radius: 50%;
 }
 
-/* ANÉIS */
 .anel {
   position: absolute;
-  border: 2px solid rgba(0, 0, 0, 0.25);
+  border: 2px solid var(--tm-border);
   border-radius: 50%;
   animation: girar linear infinite;
   pointer-events: none;
 }
-
+.pausada .anel {
+  animation-play-state: paused;
+}
 .a1 {
   width: 360px;
   height: 360px;
   animation-duration: 20s;
 }
-
 .a2 {
   width: 460px;
   height: 460px;
   animation-duration: 30s;
 }
-
 .a3 {
   width: 560px;
   height: 560px;
@@ -219,20 +120,30 @@ function transicionarPara(url, imgEl) {
   z-index: 20;
 }
 
+.avatar-btn {
+  display: block;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  transition: transform var(--tm-dur-base) var(--tm-ease), box-shadow var(--tm-dur-base) var(--tm-ease);
+}
+.avatar-btn:hover,
+.avatar-btn:focus-visible {
+  transform: scale(1.15);
+  box-shadow: 0 0 0 4px rgba(199, 164, 58, 0.5);
+}
 .avatar {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  cursor: pointer;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  object-fit: cover;
+  display: block;
 }
 
-.avatar:hover {
-  transform: scale(1.15);
-  box-shadow: 0 0 0 4px rgba(199, 164, 58, 0.5);
-}
-
-/* ANIMAÇÃO */
 @keyframes girar {
   from {
     transform: rotate(0deg);
@@ -242,37 +153,39 @@ function transicionarPara(url, imgEl) {
   }
 }
 
-/* MOBILE ONLY */
 @media (max-width: 600px) {
   .orbita {
-    width: 360px;
-    height: 360px;
-    transform: scale(0.75);
-  }
-
-  .central {
-    width: 180px;
-    height: 180px;
-  }
-
-  .a1 {
-    width: 240px;
-    height: 240px;
-  }
-
-  .a2 {
-    width: 300px;
-    height: 300px;
-  }
-
-  .a3 {
     width: 340px;
     height: 340px;
   }
-
+  .central {
+    width: 160px;
+    height: 160px;
+  }
+  .a1 {
+    width: 220px;
+    height: 220px;
+  }
+  .a2 {
+    width: 280px;
+    height: 280px;
+  }
+  .a3 {
+    width: 330px;
+    height: 330px;
+  }
   .avatar {
     width: 48px;
     height: 48px;
+  }
+  .avatar-wrapper {
+    top: -24px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anel {
+    animation: none;
   }
 }
 </style>

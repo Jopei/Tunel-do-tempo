@@ -1,182 +1,126 @@
 <template>
-  <v-dialog
-    v-model="aberto"
+  <TmFormDialog
+    :model-value="modelValue"
+    titulo="Editar história"
     max-width="640"
-    :fullscreen="isMobile"
-    :persistent="loading"
-    transition="dialog-bottom-transition"
+    :bloqueado="loading"
+    :sujo="sujo"
+    @update:model-value="(v) => emit('update:modelValue', v)"
   >
-    <v-card class="modal-card">
-      <v-card-title class="modal-title">
-        Editar História
-      </v-card-title>
+    <form id="form-editar-historia" novalidate @submit.prevent="confirmar">
+      <v-text-field v-model="form.titulo" label="Título" :error-messages="erros.titulo" :disabled="loading" required />
+      <v-textarea
+        v-model="form.descricao_curta"
+        label="Descrição curta"
+        rows="2"
+        auto-grow
+        :error-messages="erros.descricao_curta"
+        :disabled="loading"
+      />
+      <v-select
+        v-model="form.tipo_historia"
+        label="Tipo da história"
+        :items="tipos"
+        :error-messages="erros.tipo_historia"
+        :disabled="loading"
+      />
+      <v-autocomplete
+        v-model="form.usuarios"
+        label="Membros da história"
+        :items="usuarios"
+        item-title="nome"
+        item-value="uuid"
+        multiple
+        chips
+        closable-chips
+        :loading="carregandoUsuarios"
+        :error-messages="erros.usuarios"
+        :disabled="loading"
+        no-data-text="Nenhum membro encontrado"
+      />
+      <p class="aviso">Para editar o texto da história, abra a história e use a página de criação.</p>
+    </form>
 
-      <v-card-text class="modal-body">
-        <v-text-field
-          v-model="form.titulo"
-          label="Título"
-          variant="outlined"
-          density="comfortable"
-          :disabled="loading"
-        />
-
-        <v-textarea
-          v-model="form.descricao_curta"
-          label="Descrição curta"
-          variant="outlined"
-          rows="2"
-          auto-grow
-          :disabled="loading"
-        />
-
-        <v-select
-          v-model="form.tipo_historia"
-          label="Tipo da História"
-          :items="tipos"
-          variant="outlined"
-          :disabled="loading"
-        />
-
-        <div class="usuarios">
-          <span class="usuarios-label">Usuários</span>
-
-          <div class="usuarios-list">
-            <v-checkbox
-              v-for="u in usuarios"
-              :key="u.uuid"
-              v-model="form.usuarios"
-              :label="u.nome"
-              :value="u.uuid"
-              density="compact"
-              :disabled="loading"
-            />
-          </div>
-        </div>
-      </v-card-text>
-
-      <v-card-actions class="modal-actions">
-        <v-btn
-          variant="text"
-          @click="fechar"
-          :disabled="loading"
-          block="isMobile"
-        >
-          Cancelar
-        </v-btn>
-
-        <v-btn
-          color="primary"
-          :loading="loading"
-          :disabled="loading"
-          @click="confirmar"
-          block="isMobile"
-        >
-          Salvar
-        </v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+    <template #acoes>
+      <v-btn variant="text" color="on-surface" :disabled="loading" @click="emit('update:modelValue', false)">Cancelar</v-btn>
+      <v-btn variant="flat" color="primary" type="submit" form="form-editar-historia" :loading="loading" :disabled="loading">
+        Salvar
+      </v-btn>
+    </template>
+  </TmFormDialog>
 </template>
 
 <script setup>
 import { ref, watch, computed } from "vue";
-import { useDisplay } from "vuetify";
 import { atualizarHistoria } from "@/services/historia.service";
-import { toast } from "vue3-toastify";
-
-const { mobile } = useDisplay();
-const isMobile = computed(() => mobile.value);
+import { listarUsuarios } from "@/services/usuario.service";
+import { useApiError } from "@/composables/useApiError";
+import { useNotify } from "@/composables/useNotify";
+import TmFormDialog from "@/components/ui/TmFormDialog.vue";
 
 const props = defineProps({
   modelValue: Boolean,
-  historia: Object,
+  historia: { type: Object, default: null },
 });
-
 const emit = defineEmits(["update:modelValue", "confirmar"]);
 
-const aberto = ref(false);
+const { tratar, focarPrimeiroInvalido } = useApiError();
+const notify = useNotify();
+
 const loading = ref(false);
-const errors = ref({});
-
-const form = ref({
-  titulo: "",
-  descricao_curta: "",
-  tipo_historia: "",
-  usuarios: [],
-});
-
-const tipos = ["Pessoal", "Principal", "Paralela"];
+const carregandoUsuarios = ref(false);
+const erros = ref({});
+const inicial = ref("");
 const usuarios = ref([]);
+const tipos = ["Pessoal", "Principal", "Paralela"];
+const form = ref({ titulo: "", descricao_curta: "", tipo_historia: "", usuarios: [] });
+
+const sujo = computed(() => JSON.stringify(form.value) !== inicial.value);
+
+async function carregarUsuarios() {
+  if (usuarios.value.length) return;
+  carregandoUsuarios.value = true;
+  try {
+    const r = await listarUsuarios();
+    usuarios.value = r.data ?? r;
+  } catch {
+    // Fallback: ao menos os membros atuais da história.
+    usuarios.value = props.historia?.usuarios ?? [];
+  } finally {
+    carregandoUsuarios.value = false;
+  }
+}
 
 watch(
-  () => props.modelValue,
-  v => (aberto.value = v)
-);
-
-watch(
-  () => props.historia,
-  historia => {
-    if (!historia) return;
-
+  () => [props.modelValue, props.historia],
+  ([aberto, historia]) => {
+    if (!aberto || !historia) return;
+    erros.value = {};
     form.value = {
       titulo: historia.titulo,
       descricao_curta: historia.descricao_curta ?? "",
       tipo_historia: historia.tipo_historia,
-      usuarios: historia.usuarios.map(u => u.uuid),
+      usuarios: (historia.usuarios ?? []).map((u) => u.uuid),
     };
-
-    usuarios.value = historia.usuarios;
+    inicial.value = JSON.stringify(form.value);
+    carregarUsuarios();
   },
-  { immediate: true }
+  { immediate: true },
 );
-
-function fechar() {
-  if (loading.value) return;
-  emit("update:modelValue", false);
-}
 
 async function confirmar() {
   if (!props.historia?.uuid) return;
-
   loading.value = true;
-  errors.value = {};
-
+  erros.value = {};
   try {
-    await atualizarHistoria(props.historia.uuid, {
-      titulo: form.value.titulo,
-      descricao_curta: form.value.descricao_curta,
-      tipo_historia: form.value.tipo_historia,
-      usuarios: form.value.usuarios,
-    });
-
-    toast.success("História atualizada com sucesso ✨");
-
+    await atualizarHistoria(props.historia.uuid, { ...form.value });
+    notify.sucesso("História atualizada.");
     emit("update:modelValue", false);
     emit("confirmar");
-
   } catch (e) {
-
-    if (e.response?.status === 422) {
-
-      errors.value = e.response.data.errors || {};
-
-      const apiErrors = e.response.data.errors;
-
-      const primeiraMensagem =
-        Object.values(apiErrors)[0]?.[0] || "Erro de validação.";
-
-      toast.error(primeiraMensagem);
-
-    } else {
-
-      const mensagem =
-        e.response?.data?.message ||
-        "Erro inesperado ao atualizar história.";
-
-      toast.error(mensagem);
-
-    }
-
+    const info = tratar(e);
+    erros.value = info.campos;
+    if (Object.keys(info.campos).length) focarPrimeiroInvalido();
   } finally {
     loading.value = false;
   }
@@ -184,64 +128,9 @@ async function confirmar() {
 </script>
 
 <style scoped>
-.modal-card {
-  background: #fbf6e6;
-  border-radius: 28px;
-  display: flex;
-  flex-direction: column;
-}
-
-.modal-title {
-  font-weight: 700;
-  padding-bottom: 0;
-}
-
-.modal-body {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.usuarios {
-  margin-top: 8px;
-}
-
-.usuarios-label {
-  display: block;
-  font-weight: 600;
-  margin-bottom: 6px;
-}
-
-.usuarios-list {
-  max-height: 220px;
-  overflow-y: auto;
-  padding-right: 4px;
-}
-
-.modal-actions {
-  justify-content: flex-end;
-  gap: 12px;
-}
-
-/* MOBILE ONLY */
-@media (max-width: 600px) {
-  .modal-card {
-    border-radius: 0;
-    height: 100vh;
-  }
-
-  .modal-body {
-    flex: 1;
-    overflow-y: auto;
-    padding-bottom: 24px;
-  }
-
-  .modal-actions {
-    position: sticky;
-    bottom: 0;
-    background: #fbf6e6;
-    padding: 12px;
-    flex-direction: column;
-  }
+.aviso {
+  margin: 0;
+  font-size: var(--tm-fs-sm);
+  color: var(--tm-ink-muted);
 }
 </style>

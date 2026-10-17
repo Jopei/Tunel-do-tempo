@@ -1,378 +1,405 @@
 <template>
-    <section class="historias-page">
-        <UserMenu/>
-        <div class="painel">
-            <div class="search-bar">
-                <input v-model="busca" type="text" placeholder="Buscar História..." />
-                <v-icon class="search-icon">
-                    mdi-magnify
-                </v-icon>
-            </div>
-
-            <div class="cards-area">
-                <div v-for="h in historiasFiltradas"
-                     :key="h.uuid"
-                     class="historia-card"
-                     @click="irParaHistoria(h.uuid)">
-
-                    <v-menu location="end top" offset="10">
-                        <template #activator="{ props }">
-                            <v-icon v-bind="props" class="menu-icon" @click.stop>
-                                mdi-dots-vertical
-                            </v-icon>
-                        </template>
-
-                        <v-card class="menu-card" elevation="6">
-                            <v-list density="compact" class="menu-list">
-                                <v-list-item>
-                                    <v-list-item-title>Ver</v-list-item-title>
-                                </v-list-item>
-
-                                <v-list-item @click="editarHistoria(h)">
-                                    <v-list-item-title>Editar</v-list-item-title>
-                                </v-list-item>
-
-                                <v-list-item @click="abrirDialogExcluir(h.uuid)">
-                                    <v-list-item-title>Apagar</v-list-item-title>
-                                </v-list-item>
-                            </v-list>
-                        </v-card>
-                    </v-menu>
-
-                    <div class="card-title">{{ h.titulo }}</div>
-
-                    <div class="card-footer">
-                        <span class="tipo">{{ h.tipo_historia }}</span>
-                        <span class="membros">👥 {{ h.usuarios.length }}</span>
-                    </div>
-                </div>
-            </div>
+  <section class="historias-page tm-immersive">
+    <div class="painel">
+      <header class="cabeca">
+        <div>
+          <h1 class="tm-title">Histórias</h1>
+          <p class="contador" aria-live="polite">{{ rotuloContador }}</p>
         </div>
-    </section>
+        <v-btn v-if="auth.isMembro" to="/historias/criar" variant="flat" color="primary" prepend-icon="mdi-plus" class="d-none d-sm-inline-flex">
+          Contar uma história
+        </v-btn>
+      </header>
 
-    <v-dialog v-model="dialogExcluir" max-width="420">
-        <v-card style="background:#fbf6e6; border-radius:24px;">
-            <v-card-title style="font-weight:700; text-align:center;">
-                Excluir história
-            </v-card-title>
+      <div class="filtros">
+        <v-text-field
+          ref="buscaRef"
+          v-model="buscaInput"
+          label="Buscar histórias"
+          prepend-inner-icon="mdi-magnify"
+          clearable
+          hide-details
+          autocomplete="off"
+          class="busca"
+          hint="Atalho: /"
+        />
+        <v-select v-model="membro" :items="membrosItens" label="Membro" clearable hide-details class="filtro-sel" />
+        <v-select v-model="ordem" :items="ORDENS" item-title="titulo" item-value="valor" label="Ordenar por" hide-details class="filtro-sel" />
+      </div>
 
-            <v-card-text style="text-align:center;">
-                Tem certeza que deseja excluir esta história?
-            </v-card-text>
+      <div class="chips" role="group" aria-label="Filtrar por tipo">
+        <v-chip
+          v-for="t in TIPOS"
+          :key="t.valor"
+          :variant="tipo === t.valor ? 'flat' : 'outlined'"
+          :color="tipo === t.valor ? 'primary' : undefined"
+          :aria-pressed="tipo === t.valor"
+          tag="button"
+          class="chip-tipo"
+          @click="tipo = t.valor"
+        >
+          {{ t.titulo }}
+        </v-chip>
 
-            <v-card-actions style="justify-content:center; gap:16px;">
-                <v-btn variant="text" @click="dialogExcluir = false">
-                    Cancelar
-                </v-btn>
+        <v-btn-toggle v-if="temDatas" v-model="visao" mandatory density="comfortable" class="ml-auto" aria-label="Modo de exibição">
+          <v-btn value="cards" aria-label="Cartões" prepend-icon="mdi-view-grid-outline">Cartões</v-btn>
+          <v-btn value="linha" aria-label="Linha do tempo" prepend-icon="mdi-timeline-outline">Linha do tempo</v-btn>
+        </v-btn-toggle>
+      </div>
 
-                <v-btn style="background:#b00020; color:#fff;" @click="confirmarExclusao">
-                    Sim, excluir
-                </v-btn>
-            </v-card-actions>
-        </v-card>
-    </v-dialog>
+      <TmSkeletonGrid v-if="carregando" :quantidade="6" tipo="article" minimo="260px" />
+      <TmErrorState v-else-if="erro" texto="Não conseguimos carregar as histórias." @retry="carregar" />
+      <TmEmptyState
+        v-else-if="!filtradas.length && temFiltro"
+        icone="mdi-magnify-close"
+        :titulo="q ? `Nenhuma história encontrada para “${q}”` : 'Nenhuma história com esses filtros'"
+        texto="Tente outras palavras ou limpe os filtros."
+      >
+        <v-btn variant="tonal" @click="limparFiltros">Limpar busca</v-btn>
+      </TmEmptyState>
+      <TmEmptyState v-else-if="!filtradas.length" icone="mdi-book-open-page-variant-outline" titulo="Nenhuma história ainda.">
+        <v-btn v-if="auth.isMembro" to="/historias/criar" variant="flat" color="primary">Contar uma história</v-btn>
+      </TmEmptyState>
 
-    <EditarHistoriaModal
-        v-model="dialogEditar"
-        :historia="historiaSelecionada"
-        @confirmar="recarregarHistorias"
+      <ul v-else-if="visao === 'cards' || !temDatas" class="cards-area">
+        <li v-for="h in filtradas" :key="h.uuid" class="item">
+          <HistoriaCard
+            :historia="h"
+            :termo="q"
+            :pode-editar="auth.isMembro"
+            @editar="editar(h)"
+            @excluir="excluir(h)"
+          />
+        </li>
+      </ul>
+
+      <div v-else class="linha-tempo">
+        <section v-for="g in porAno" :key="g.ano" class="ano">
+          <h2 class="tm-title ano-titulo">{{ g.ano }}</h2>
+          <ul class="cards-linha">
+            <li v-for="h in g.itens" :key="h.uuid" class="item-linha">
+              <HistoriaCard
+                :historia="h"
+                :termo="q"
+                :pode-editar="auth.isMembro"
+                @editar="editar(h)"
+                @excluir="excluir(h)"
+              />
+            </li>
+          </ul>
+        </section>
+      </div>
+    </div>
+
+    <v-btn
+      v-if="auth.isMembro"
+      to="/historias/criar"
+      icon="mdi-plus"
+      color="primary"
+      size="large"
+      class="fab d-sm-none"
+      aria-label="Contar uma história"
     />
+
+    <EditarHistoriaModal v-model="dialogEditar" :historia="historiaParaEditar" @confirmar="carregar" />
+  </section>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
-import { useRouter } from "vue-router";
-import { buscarHistoriasResumo } from "@/services/historia.service";
-import { deletarHistoria } from "@/services/historia.service";
+import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { buscarHistoriasResumo, deletarHistoria } from "@/services/historia.service";
+import { useAuthStore } from "@/stores/auth";
+import { useConfirm } from "@/composables/useConfirm";
+import { useApiError } from "@/composables/useApiError";
+import { useNotify } from "@/composables/useNotify";
 import EditarHistoriaModal from "@/components/historias/EditarHistoriaModal.vue";
-import UserMenu from "@/components/layout/UserMenu.vue";
+import HistoriaCard from "@/components/historias/HistoriaCard.vue";
+import TmSkeletonGrid from "@/components/ui/TmSkeletonGrid.vue";
+import TmErrorState from "@/components/ui/TmErrorState.vue";
+import TmEmptyState from "@/components/ui/TmEmptyState.vue";
 
+const TIPOS = [
+  { titulo: "Todas", valor: "" },
+  { titulo: "Principal", valor: "Principal" },
+  { titulo: "Paralela", valor: "Paralela" },
+  { titulo: "Pessoal", valor: "Pessoal" },
+];
+const ORDENS = [
+  { titulo: "Mais recentes", valor: "recentes" },
+  { titulo: "A–Z", valor: "az" },
+];
+
+const auth = useAuthStore();
+const route = useRoute();
 const router = useRouter();
+const { confirmar } = useConfirm();
+const { tratar } = useApiError();
+const notify = useNotify();
+
 const historias = ref([]);
-const busca = ref("");
-const dialogExcluir = ref(false);
-const historiaSelecionada = ref(null);
+const carregando = ref(true);
+const erro = ref(false);
 const dialogEditar = ref(false);
+const historiaParaEditar = ref(null);
+const buscaRef = ref(null);
 
-function editarHistoria(historia) {
-    historiaSelecionada.value = historia;
-    dialogEditar.value = true;
-}
+// Estado dos filtros vive na URL (?q=&tipo=&membro=&ordem=&visao=)
+const q = ref(String(route.query.q ?? ""));
+const buscaInput = ref(q.value);
+const tipo = ref(String(route.query.tipo ?? ""));
+const membro = ref(route.query.membro ? String(route.query.membro) : null);
+const ordem = ref(String(route.query.ordem ?? "recentes"));
+const visao = ref(String(route.query.visao ?? "cards"));
 
-onMounted(async () => {
-    historias.value = await buscarHistoriasResumo();
+let debounce = null;
+watch(buscaInput, (v) => {
+  clearTimeout(debounce);
+  debounce = setTimeout(() => (q.value = (v ?? "").trim()), 250);
 });
 
-const historiasFiltradas = computed(() => {
-    if (!busca.value) return historias.value;
-    return historias.value.filter(h =>
-        h.titulo.toLowerCase().includes(busca.value.toLowerCase())
-    );
+watch([q, tipo, membro, ordem, visao], () => {
+  const query = {};
+  if (q.value) query.q = q.value;
+  if (tipo.value) query.tipo = tipo.value;
+  if (membro.value) query.membro = membro.value;
+  if (ordem.value !== "recentes") query.ordem = ordem.value;
+  if (visao.value !== "cards") query.visao = visao.value;
+  router.replace({ query });
 });
 
-function abrirDialogExcluir(uuid) {
-    historiaSelecionada.value = uuid;
-    dialogExcluir.value = true;
+// Botão voltar do navegador altera a URL: sincroniza de volta.
+watch(
+  () => route.query,
+  (qy) => {
+    if (route.name !== "historias-listar") return;
+    q.value = String(qy.q ?? "");
+    if (buscaInput.value !== q.value) buscaInput.value = q.value;
+    tipo.value = String(qy.tipo ?? "");
+    membro.value = qy.membro ? String(qy.membro) : null;
+    ordem.value = String(qy.ordem ?? "recentes");
+    visao.value = String(qy.visao ?? "cards");
+  },
+);
+
+function normalizar(s) {
+  return String(s ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "");
 }
 
-async function confirmarExclusao() {
-    await deletarHistoria(historiaSelecionada.value);
+const membrosItens = computed(() => {
+  const mapa = new Map();
+  historias.value.forEach((h) => h.usuarios?.forEach((u) => mapa.set(u.uuid, u.nome)));
+  return [...mapa].map(([value, title]) => ({ value, title })).sort((a, b) => a.title.localeCompare(b.title, "pt-BR"));
+});
 
-    historias.value = historias.value.filter(
-        h => h.uuid !== historiaSelecionada.value
-    );
+const temDatas = computed(() => historias.value.some((h) => h.data_historia));
+const temFiltro = computed(() => !!(q.value || tipo.value || membro.value));
 
-    dialogExcluir.value = false;
-    historiaSelecionada.value = null;
+const filtradas = computed(() => {
+  const termo = normalizar(q.value);
+  let lista = historias.value.filter((h) => {
+    if (tipo.value && h.tipo_historia !== tipo.value) return false;
+    if (membro.value && !h.usuarios?.some((u) => u.uuid === membro.value)) return false;
+    if (!termo) return true;
+    const alvo = normalizar([h.titulo, h.descricao_curta, ...(h.usuarios ?? []).map((u) => u.nome)].join(" "));
+    return alvo.includes(termo);
+  });
+  if (ordem.value === "az") {
+    lista = [...lista].sort((a, b) => a.titulo.localeCompare(b.titulo, "pt-BR"));
+  } else if (temDatas.value) {
+    lista = [...lista].sort((a, b) => new Date(b.data_historia || 0) - new Date(a.data_historia || 0));
+  } else {
+    lista = [...lista].reverse(); // sem data: assume que o fim da lista é o mais recente
+  }
+  return lista;
+});
+
+const porAno = computed(() => {
+  const mapa = new Map();
+  for (const h of filtradas.value) {
+    const ano = h.data_historia ? new Date(h.data_historia).getFullYear() : "Sem data";
+    if (!mapa.has(ano)) mapa.set(ano, []);
+    mapa.get(ano).push(h);
+  }
+  return [...mapa].map(([ano, itens]) => ({ ano, itens }));
+});
+
+const rotuloContador = computed(() => {
+  if (carregando.value || erro.value) return "";
+  const n = filtradas.value.length;
+  return `${n} ${n === 1 ? "história" : "histórias"}`;
+});
+
+async function carregar() {
+  carregando.value = true;
+  erro.value = false;
+  try {
+    const r = await buscarHistoriasResumo();
+    historias.value = Array.isArray(r) ? r : (r?.data ?? []);
+  } catch {
+    erro.value = true;
+  } finally {
+    carregando.value = false;
+  }
 }
 
-async function recarregarHistorias() {
-    historias.value = await buscarHistoriasResumo();
+function limparFiltros() {
+  buscaInput.value = "";
+  q.value = "";
+  tipo.value = "";
+  membro.value = null;
 }
 
-function irParaHistoria(uuid) {
-    router.push({
-        name: "historias-show",
-        params: { uuid },
-    });
+function editar(h) {
+  historiaParaEditar.value = h;
+  dialogEditar.value = true;
 }
+
+async function excluir(h) {
+  const ok = await confirmar({
+    titulo: `Excluir a história “${h.titulo}”?`,
+    texto: "Essa ação não pode ser desfeita.",
+    rotuloConfirmar: "Excluir",
+  });
+  if (!ok) return;
+  try {
+    await deletarHistoria(h.uuid);
+    historias.value = historias.value.filter((x) => x.uuid !== h.uuid);
+    notify.sucesso("História excluída.");
+  } catch (e) {
+    tratar(e);
+  }
+}
+
+function atalho(e) {
+  const alvo = e.target;
+  const digitando = alvo?.tagName === "INPUT" || alvo?.tagName === "TEXTAREA" || alvo?.isContentEditable;
+  if (e.key === "/" && !digitando && !e.ctrlKey && !e.metaKey) {
+    e.preventDefault();
+    buscaRef.value?.focus();
+  }
+}
+
+onMounted(() => {
+  carregar();
+  window.addEventListener("keydown", atalho);
+});
+onBeforeUnmount(() => {
+  window.removeEventListener("keydown", atalho);
+  clearTimeout(debounce);
+});
 </script>
 
 <style scoped>
 .historias-page {
-    min-height: 100vh;
-    background: url("/backgrounds/cadastrar-bg.svg") center/cover no-repeat;
-    padding: 100px 32px 0;
+  min-height: 100dvh;
+  background: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)), url("/backgrounds/home-bg.svg") center/cover fixed;
+  padding: calc(var(--tm-navbar-h) + 24px) var(--tm-space-4) var(--tm-space-8);
 }
-
 .painel {
-    background: #fbf6e6;
-    padding: 48px 56px;
-    margin-top: 1.5%;
-    border-radius: 48px 48px 0 0;
-    min-height: calc(100vh - 128px);
+  max-width: 1100px;
+  margin: 0 auto;
+  background: rgb(var(--v-theme-surface));
+  color: rgb(var(--v-theme-on-surface));
+  border-radius: var(--tm-radius-lg);
+  padding: var(--tm-space-6);
+  box-shadow: var(--tm-shadow-lg);
 }
-
-/* BUSCA */
-.search-bar {
-    position: relative;
-    width: 100%;
-    margin-bottom: 56px;
+.cabeca {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--tm-space-4);
+  margin-bottom: var(--tm-space-4);
 }
-
-.search-bar input {
-    width: 100%;
-    padding: 18px 56px 18px 28px;
-    border-radius: 20px;
-    border: 1.5px solid #000;
-    font-weight: 600;
+.cabeca h1 {
+  font-size: var(--tm-fs-3xl);
 }
-
-.search-icon {
-    position: absolute;
-    right: 20px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #555;
-    pointer-events: none;
+.contador {
+  margin: 0;
+  color: var(--tm-ink-muted);
+  min-height: 1.6em;
 }
-
-/* CARDS */
-.cards-area {
-    display: flex;
-    gap: 32px;
-    flex-wrap: wrap; /* PERMITE QUEBRA */
+.filtros {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: var(--tm-space-3);
+  margin-bottom: var(--tm-space-4);
 }
-
-.historia-card {
-    position: relative;
-    width: calc((100% - 160px) / 6); /* 6 POR LINHA */
-    min-width: 240px;
-    height: 150px;
-    background: radial-gradient(circle at center, #efd56b, #c9a42f);
-    border-radius: 22px;
-    padding: 22px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    box-shadow: inset 0 0 40px rgba(0, 0, 0, .15);
-    cursor: pointer;
-    transition: transform .2s ease, box-shadow .2s ease;
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tm-space-2);
+  align-items: center;
+  margin-bottom: var(--tm-space-5);
 }
-
-.historia-card:hover {
-    transform: translateY(-4px);
+.chip-tipo {
+  min-height: 36px;
+  cursor: pointer;
 }
-
-/* ÍCONE MENU */
-.menu-icon {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    cursor: pointer;
-    z-index: 2;
+.cards-area,
+.cards-linha {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--tm-space-4);
 }
-
-/* MENU */
-.menu-card {
-    background: radial-gradient(circle at center, #efd56b, #c9a42f);
-    border-radius: 14px;
-    min-width: 130px;
+.item,
+.item-linha {
+  display: flex;
 }
-
-.menu-card .v-list-item {
-    font-weight: 600;
+.linha-tempo {
+  position: relative;
+  padding-left: var(--tm-space-5);
+  border-left: 2px solid var(--tm-gold);
 }
-
-.menu-card .v-list-item:hover {
-    background: rgba(0, 0, 0, .08);
+.ano {
+  position: relative;
+  margin-bottom: var(--tm-space-6);
 }
-
-.menu-card .danger {
-    color: #8b0000;
+.ano-titulo {
+  font-size: var(--tm-fs-xl);
+  margin-bottom: var(--tm-space-3);
 }
-
-/* TEXTO */
-.card-title {
-    text-align: center;
-    font-weight: 700;
+.ano-titulo::before {
+  content: "";
+  position: absolute;
+  left: calc(-1 * var(--tm-space-5) - 8px);
+  top: 8px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--tm-gold);
 }
-
-.card-footer {
-    display: flex;
-    justify-content: space-between;
-    font-size: 14px;
-    font-weight: 700;
+.fab {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 100;
 }
-
-.tipo {
-    text-transform: capitalize;
+@media (max-width: 960px) {
+  .filtros {
+    grid-template-columns: 1fr 1fr;
+  }
+  .busca {
+    grid-column: 1 / -1;
+  }
 }
-
-.menu-card {
-    background: radial-gradient(circle at center, #efd56b, #c9a42f);
-    border-radius: 14px;
-    min-width: 130px;
-}
-
-.menu-list {
-    background: transparent !important;
-}
-
-.menu-list .v-list-item:hover {
-    background: rgba(0, 0, 0, 0.08);
-}
-
-.menu-list .danger {
-    color: #8b0000;
-}
-
-/* ===== ANIMAÇÃO BASE ===== */
-.reveal {
-    opacity: 0;
-    transform: translateY(24px);
-    animation: fadeUp 0.8s ease-out forwards;
-    animation-delay: var(--delay, 0s);
-    will-change: transform, opacity;
-}
-
-/* ===== KEYFRAME ===== */
-@keyframes fadeUp {
-    from {
-        opacity: 0;
-        transform: translateY(24px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@keyframes pageFadeUp {
-    from {
-        opacity: 0;
-        transform: translateY(28px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.historias-page {
-    animation: pageFadeUp 0.9s ease-out forwards;
-}
-
-/* ===== HOVER SUAVE (mantém identidade) ===== */
-.historia-card {
-    transition:
-        transform 0.25s ease,
-        box-shadow 0.25s ease;
-}
-
-.historia-card:hover {
-    transform: translateY(-4px);
-    box-shadow:
-        inset 0 0 50px rgba(0, 0, 0, 0.25),
-        0 18px 40px rgba(0, 0, 0, 0.35);
-}
-
-/* ===== MENU ICON FEEDBACK ===== */
-.menu-icon {
-    transition: transform 0.15s ease, opacity 0.15s ease;
-}
-
-.menu-icon:hover {
-    transform: scale(1.1);
-    opacity: 0.85;
-}
-
-
 @media (max-width: 600px) {
-
-  .historias-page {
-    padding: 72px 16px 0;
-  }
-
   .painel {
-    padding: 24px 20px 32px;
-    margin-top: 0;
-    border-radius: 24px 24px 0 0;
-    min-height: auto;
+    padding: var(--tm-space-4);
   }
-  
-  /* BUSCA */
-  .search-bar {
-    margin-bottom: 28px;
+  .filtros {
+    grid-template-columns: 1fr;
   }
-
-  .search-bar input {
-    padding: 14px 48px 14px 18px;
-    border-radius: 16px;
+  .cards-area,
+  .cards-linha {
+    grid-template-columns: 1fr;
   }
-
-  /* CARDS */
-  .cards-area {
-    gap: 16px;
-  }
-
-  .historia-card {
-    width: calc((100% - 16px) / 2); /* 2 por linha */
-    min-width: unset;
-    height: 150px;
-  }
-
-  .menu-icon {
-    top: 10px;
-    right: 10px;
-  }
-
-  .card-footer {
-    font-size: 13px;
-  }
-
-  
 }
 </style>

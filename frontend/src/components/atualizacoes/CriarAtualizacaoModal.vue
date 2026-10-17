@@ -1,126 +1,153 @@
 <template>
-  <v-dialog v-model="dialog" max-width="900">
-    <v-card class="card">
-
-      <v-icon class="fechar" @click="fechar">
-        mdi-close
-      </v-icon>
-
-      <h1>Nova Atualização</h1>
-
-      <div class="field">
-        <label>Título</label>
-        <input v-model="titulo" />
-      </div>
-
-      <div class="field">
-        <label>Link da Música</label>
-        <input v-model="linkMusica" />
-      </div>
-
-      <!-- EDITOR MARKDOWN -->
-      <div class="field destaque">
-        <label>Conteúdo (Markdown)</label>
+  <TmFormDialog
+    v-model="dialog"
+    :titulo="atualizacao ? 'Editar atualização' : 'Nova atualização'"
+    max-width="900"
+    :bloqueado="loading"
+    :sujo="sujo"
+    @descartar="limpar"
+  >
+    <form id="form-atualizacao" novalidate @submit.prevent="salvar">
+      <v-text-field v-model="titulo" label="Título *" :error-messages="erros.titulo" :disabled="loading" autocomplete="off" />
+      <v-text-field
+        v-model="linkMusica"
+        label="Link da música (opcional)"
+        type="url"
+        inputmode="url"
+        placeholder="https://"
+        :error-messages="erros.link_musica"
+        :disabled="loading"
+      />
+      <div class="editor-bloco" :class="{ invalido: erros.conteudo_markdown }">
+        <label class="editor-label" @click="editor?.focus()">Conteúdo (Markdown) *</label>
+        <div v-if="carregandoEditor" class="editor-carregando" role="status">Carregando editor...</div>
         <div ref="editorRef"></div>
+        <p v-if="erros.conteudo_markdown" class="erro-campo" role="alert">{{ erros.conteudo_markdown }}</p>
       </div>
+    </form>
 
-      <div class="botao-container">
-        <button @click="salvar" :disabled="loading">
-          <span v-if="loading">Publicando...</span>
-          <span v-else>Publicar Atualização</span>
-        </button>
-      </div>
-
-    </v-card>
-  </v-dialog>
+    <template #acoes>
+      <v-btn variant="text" color="on-surface" :disabled="loading" @click="dialog = false">Cancelar</v-btn>
+      <v-btn variant="flat" color="primary" type="submit" form="form-atualizacao" :loading="loading" :disabled="loading">
+        {{ atualizacao ? "Salvar alterações" : "Publicar atualização" }}
+      </v-btn>
+    </template>
+  </TmFormDialog>
 </template>
+
 <script setup>
-import { ref, computed, watch, nextTick } from "vue";
-import { Editor } from "@toast-ui/editor";
-import "@toast-ui/editor/dist/toastui-editor.css";
-import { criarAtualizacao } from "@/services/atualizacao.service";
-import { toast } from "vue3-toastify";
+import { ref, computed, watch, nextTick, onBeforeUnmount } from "vue";
+import { criarAtualizacao, atualizarAtualizacao } from "@/services/atualizacao.service";
+import { useApiError } from "@/composables/useApiError";
+import { useNotify } from "@/composables/useNotify";
+import { atualizacaoCriada } from "@/composables/useMidiaEventos";
+import TmFormDialog from "@/components/ui/TmFormDialog.vue";
 
 const props = defineProps({
-  modelValue: Boolean
+  modelValue: Boolean,
+  /** Quando informado, o modal edita esta atualização. */
+  atualizacao: { type: Object, default: null },
 });
-
 const emit = defineEmits(["update:modelValue", "sucesso"]);
 
 const dialog = computed({
   get: () => props.modelValue,
-  set: (val) => emit("update:modelValue", val)
+  set: (val) => emit("update:modelValue", val),
 });
+
+const { tratar, focarPrimeiroInvalido } = useApiError();
+const notify = useNotify();
 
 const titulo = ref("");
 const linkMusica = ref("");
 const loading = ref(false);
-const errors = ref({});
-
+const carregandoEditor = ref(false);
+const erros = ref({});
 const editorRef = ref(null);
 let editor = null;
+let inicial = { titulo: "", link: "", md: "" };
 
-/* inicializa editor somente quando abrir */
-watch(dialog, async (val) => {
-  if (val) {
+const sujo = computed(
+  () =>
+    titulo.value !== inicial.titulo ||
+    linkMusica.value !== inicial.link ||
+    (editor ? editor.getMarkdown() !== inicial.md : false),
+);
+
+// O editor (toast-ui) só é baixado quando o modal abre pela primeira vez.
+async function garantirEditor() {
+  if (editor) return;
+  carregandoEditor.value = true;
+  const [{ Editor }] = await Promise.all([
+    import("@toast-ui/editor"),
+    import("@toast-ui/editor/dist/toastui-editor.css"),
+  ]);
+  carregandoEditor.value = false;
+  await nextTick();
+  if (!editorRef.value) return;
+  editor = new Editor({
+    el: editorRef.value,
+    height: "300px",
+    initialEditType: "markdown",
+    previewStyle: "vertical",
+    placeholder: "Descreva as mudanças...",
+  });
+}
+
+watch(
+  () => props.modelValue,
+  async (aberto) => {
+    if (!aberto) return;
+    erros.value = {};
     await nextTick();
+    await garantirEditor();
+    titulo.value = props.atualizacao?.titulo ?? "";
+    linkMusica.value = props.atualizacao?.link_musica ?? "";
+    editor?.setMarkdown(props.atualizacao?.conteudo_markdown ?? "");
+    inicial = { titulo: titulo.value, link: linkMusica.value, md: editor?.getMarkdown() ?? "" };
+  },
+  { immediate: true },
+);
 
-    if (!editor) {
-      editor = new Editor({
-        el: editorRef.value,
-        height: "300px",
-        initialEditType: "markdown",
-        previewStyle: "vertical",
-        placeholder: "Descreva as mudanças..."
-      });
-    }
+function linkValido(v) {
+  if (!v) return true;
+  try {
+    const u = new URL(v);
+    return u.protocol === "https:" || u.protocol === "http:";
+  } catch {
+    return false;
   }
-});
+}
 
 async function salvar() {
+  erros.value = {};
+  const md = editor?.getMarkdown() ?? "";
+  if (!titulo.value.trim()) erros.value.titulo = "Informe um título.";
+  if (!md.trim()) erros.value.conteudo_markdown = "Escreva o conteúdo da atualização.";
+  if (!linkValido(linkMusica.value)) erros.value.link_musica = "Informe um link válido (https://...).";
+  if (Object.keys(erros.value).length) {
+    focarPrimeiroInvalido();
+    return;
+  }
+
   loading.value = true;
-  errors.value = {};
-
+  const payload = {
+    titulo: titulo.value.trim(),
+    conteudo_markdown: md,
+    link_musica: linkMusica.value || null,
+  };
   try {
-
-    await criarAtualizacao({
-      titulo: titulo.value,
-      conteudo_markdown: editor.getMarkdown(),
-      link_musica: linkMusica.value
-    });
-
-    toast.success("Atualização publicada com sucesso 🚀");
-
+    if (props.atualizacao?.uuid) await atualizarAtualizacao(props.atualizacao.uuid, payload);
+    else await criarAtualizacao(payload);
+    notify.sucesso(props.atualizacao ? "Atualização salva." : "Atualização publicada.");
+    atualizacaoCriada.value++;
     emit("sucesso");
-
-    setTimeout(() => {
-      fechar();
-      limpar();
-    }, 800);
-
+    limpar();
+    dialog.value = false;
   } catch (e) {
-
-    if (e.response?.status === 422) {
-
-      errors.value = e.response.data.errors || {};
-
-      const apiErrors = e.response.data.errors;
-
-      const primeiraMensagem =
-        Object.values(apiErrors)[0]?.[0] || "Erro de validação.";
-
-      toast.error(primeiraMensagem);
-
-    } else {
-
-      const mensagem =
-        e.response?.data?.message ||
-        "Erro inesperado ao publicar atualização.";
-
-      toast.error(mensagem);
-
-    }
-
+    const info = tratar(e);
+    erros.value = info.campos;
+    if (Object.keys(info.campos).length) focarPrimeiroInvalido();
   } finally {
     loading.value = false;
   }
@@ -129,117 +156,38 @@ async function salvar() {
 function limpar() {
   titulo.value = "";
   linkMusica.value = "";
-
-  if (editor) editor.setMarkdown("");
+  editor?.setMarkdown("");
+  inicial = { titulo: "", link: "", md: "" };
 }
 
-function fechar() {
-  dialog.value = false;
-}
+onBeforeUnmount(() => {
+  editor?.destroy?.();
+  editor = null;
+});
 </script>
+
 <style scoped>
-
-.card {
-  position: relative;
-  background: #fbf6e6;
-  padding: 50px;
-  border-radius: 32px;
-  box-shadow: 0 30px 80px rgba(0,0,0,.35);
+.editor-bloco {
+  border: 1px solid var(--tm-border);
+  padding: var(--tm-space-3);
+  border-radius: var(--tm-radius-md);
 }
-
-h1 {
-  text-align: center;
-  margin-bottom: 30px;
+.editor-bloco.invalido {
+  border-color: rgb(var(--v-theme-error));
 }
-
-.fechar {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  cursor: pointer;
-}
-
-.field {
-  margin-bottom: 24px;
-}
-
-.field label {
-  font-weight: 600;
-  margin-bottom: 8px;
+.editor-label {
   display: block;
-}
-
-input {
-  width: 100%;
-  padding: 12px 14px;
-  border-radius: 12px;
-  border: 1px solid #ccc;
-}
-
-.destaque {
-  border: 2px solid #c7a43a;
-  padding: 18px;
-  border-radius: 18px;
-}
-
-.botao-container {
-  margin-top: 30px;
-  text-align: center;
-}
-
-button {
-  padding: 14px 46px;
-  border-radius: 18px;
-  background: #c7a43a;
-  color: #fff;
-  font-weight: 700;
-  border: none;
-  cursor: pointer;
-  transition: all .2s ease;
-}
-
-button:hover {
-  background: #b89630;
-  transform: translateY(-2px);
-}
-
-button:disabled {
-  opacity: .7;
-  cursor: not-allowed;
-}
-
-.sucesso-msg {
-  background: rgba(46,204,113,.2);
-  border: 2px solid #2ecc71;
-  padding: 12px;
-  border-radius: 12px;
-  margin-bottom: 20px;
   font-weight: 600;
+  margin-bottom: var(--tm-space-2);
 }
-
-/* EDITOR */
-
-:deep(.ql-toolbar){
-  border:none;
-  background:rgba(199,164,58,0.15);
-  border-radius:12px 12px 0 0;
+.editor-carregando {
+  padding: var(--tm-space-5);
+  text-align: center;
+  color: var(--tm-ink-muted);
 }
-
-:deep(.ql-container){
-  border:none;
-  min-height:250px;
-  border-radius:0 0 12px 12px;
+.erro-campo {
+  margin: var(--tm-space-2) 0 0;
+  color: rgb(var(--v-theme-error));
+  font-size: var(--tm-fs-sm);
 }
-
-@media (max-width: 600px) {
-  .card {
-    padding: 24px;
-    border-radius: 20px;
-  }
-
-  button {
-    width: 100%;
-  }
-}
-
 </style>

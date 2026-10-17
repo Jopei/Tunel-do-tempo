@@ -1,95 +1,180 @@
 import { createRouter, createWebHistory } from "vue-router";
-import HomeView from "../views/HomeView.vue";
-import LoginView from "@/views/LoginView.vue";
-import CadastrarHistoriaView from "@/views/CadastrarHistoriaView.vue";
-import HistoriasView from "@/views/HistoriasView.vue";
-import HistoriaShowView from "@/views/HistoriaShowView.vue";
-import NaoTeEsquecemosAmigoView from "@/views/nao-te-esquecemos-amigoView.vue";
-import CadastrarUsuarioView from "@/views/CadastrarUsuarioView.vue";
-import ARuaView from "@/views/ARuaView.vue";
-import FotosGaleriaView from "@/views/FotosGaleriaView.vue";
-import VideosGaleriaView from "@/views/VideosGaleriaView.vue";
-import AdminCriarNotificacaoView from "@/views/admin/AdminCriarNotificacaoView.vue";
-import AtualizacoesView from "@/views/AtualizacoesView.vue";
-import ConfiguracoesView from "@/views/ConfiguracoesView.vue";
+import { useAuthStore, PAPEIS_MEMBRO, PAPEL_ADMIN } from "@/stores/auth";
+
+const SUFIXO_TITULO = " · Túnel do Tempo";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) return savedPosition;
+    if (to.hash) return { el: to.hash, behavior: "smooth" };
+    return { top: 0 };
+  },
   routes: [
     {
       path: "/",
       name: "home",
-      component: HomeView,
+      component: () => import("@/views/HomeView.vue"),
+      meta: { title: "Início", immersive: true },
     },
     {
       path: "/login",
       name: "login",
-      component: LoginView,
+      component: () => import("@/views/LoginView.vue"),
+      meta: { title: "Entrar", hideNavbar: true, guestOnly: true },
+    },
+    {
+      path: "/esqueci-senha",
+      name: "esqueci-senha",
+      component: () => import("@/views/EsqueciSenhaView.vue"),
+      meta: { title: "Esqueci minha senha", guestOnly: true },
+    },
+    {
+      path: "/redefinir-senha",
+      name: "redefinir-senha",
+      component: () => import("@/views/RedefinirSenhaView.vue"),
+      meta: { title: "Redefinir senha" },
+    },
+    {
+      path: "/notificacoes/minhas",
+      name: "minhas-notificacoes",
+      component: () => import("@/views/MinhasNotificacoesView.vue"),
+      meta: { title: "Minhas notificações", requiresAuth: true },
+    },
+    {
+      path: "/minhas-memorias",
+      name: "minhas-memorias",
+      component: () => import("@/views/MinhasMemoriasView.vue"),
+      meta: { title: "Minhas memórias", requiresAuth: true },
     },
     {
       path: "/historias",
       name: "historias-listar",
-      component: HistoriasView,
-      meta: { requiresAuth: true },
+      component: () => import("@/views/HistoriasView.vue"),
+      meta: { title: "Histórias", requiresAuth: true },
     },
     {
       path: "/historias/criar",
       name: "historias-criar",
-      component: CadastrarHistoriaView,
-      meta: { requiresAuth: true },
+      component: () => import("@/views/CadastrarHistoriaView.vue"),
+      meta: { title: "Contar uma história", requiresAuth: true, roles: PAPEIS_MEMBRO },
     },
     {
       path: "/historias/:uuid",
       name: "historias-show",
-      component: HistoriaShowView,
-      meta: { requiresAuth: true },
+      component: () => import("@/views/HistoriaShowView.vue"),
+      meta: { title: "História", requiresAuth: true },
     },
     {
       path: "/aquele-que-sonhou",
       name: "aquele-que-sonhou",
-      component: NaoTeEsquecemosAmigoView,
+      component: () => import("@/views/nao-te-esquecemos-amigoView.vue"),
+      meta: { title: "Aquele que sonhou", immersive: true },
     },
     {
       path: "/cadastrar/usuarios",
       name: "cadastrar-usuarios",
-      component: CadastrarUsuarioView,
+      component: () => import("@/views/CadastrarUsuarioView.vue"),
+      meta: { title: "Quero fazer parte" },
     },
     {
       path: "/a-rua",
       name: "ARua",
-      component: ARuaView,
+      component: () => import("@/views/ARuaView.vue"),
+      meta: { title: "A Rua", immersive: true },
     },
     {
       path: "/galeria-fotos",
       name: "fotos",
-      component: FotosGaleriaView,
+      component: () => import("@/views/FotosGaleriaView.vue"),
+      meta: { title: "Fotos" },
     },
     {
       path: "/galeria-videos",
       name: "videos",
-      component: VideosGaleriaView,
+      component: () => import("@/views/VideosGaleriaView.vue"),
+      meta: { title: "Vídeos", requiresAuth: true },
     },
     {
-      path: "/notificacoes",
+      path: "/admin/notificacoes/nova",
       name: "notificacoes",
-      component: AdminCriarNotificacaoView,
+      component: () => import("@/views/admin/AdminCriarNotificacaoView.vue"),
+      meta: { title: "Nova notificação", requiresAuth: true, roles: [PAPEL_ADMIN] },
     },
+    { path: "/notificacoes", redirect: { name: "notificacoes" } },
     {
       path: "/atualizacoes",
       name: "atualizacoes",
-      component: AtualizacoesView,
+      component: () => import("@/views/AtualizacoesView.vue"),
+      meta: { title: "Atualizações" },
     },
     {
       path: "/configuracoes",
       name: "configuracoes",
-      component: ConfiguracoesView,
+      component: () => import("@/views/ConfiguracoesView.vue"),
+      meta: { title: "Meu perfil", requiresAuth: true },
+    },
+    {
+      path: "/membros",
+      name: "membros",
+      component: () => import("@/views/MembrosView.vue"),
+      meta: { title: "Membros", requiresAuth: true },
+    },
+    {
+      path: "/membros/:uuid",
+      name: "membro",
+      component: () => import("@/views/MembroView.vue"),
+      meta: { title: "Membro", requiresAuth: true },
+    },
+    {
+      path: "/em-breve",
+      name: "em-breve",
+      component: () => import("@/views/EmBreveView.vue"),
+      meta: { title: "Em breve", immersive: true },
+    },
+    {
+      path: "/sem-permissao",
+      name: "sem-permissao",
+      component: () => import("@/views/SemPermissaoView.vue"),
+      meta: { title: "Sem permissão", immersive: true },
     },
     {
       path: "/:pathMatch(.*)*",
-      name: "em-breve",
-      component: () => import("@/views/EmBreveView.vue"),
+      name: "nao-encontrado",
+      component: () => import("@/views/NotFoundView.vue"),
+      meta: { title: "Página não encontrada", immersive: true },
     },
   ],
+});
+
+router.beforeEach((to) => {
+  const auth = useAuthStore();
+
+  if (to.meta.requiresAuth && !auth.logado) {
+    return { name: "login", query: { redirect: to.fullPath } };
+  }
+
+  if (to.meta.guestOnly && auth.logado) {
+    return { name: "home" };
+  }
+
+  if (to.meta.roles && !to.meta.roles.includes(auth.papel)) {
+    return { name: "sem-permissao", query: { de: to.fullPath } };
+  }
+});
+
+router.afterEach((to) => {
+  const titulo = to.meta.title;
+  document.title = titulo ? titulo + SUFIXO_TITULO : "O Túnel do Tempo";
+
+  // Move o foco para o conteúdo após cada navegação (leitores de tela).
+  requestAnimationFrame(() => {
+    const alvo = document.querySelector("#conteudo h1") || document.getElementById("conteudo");
+    if (alvo) {
+      if (!alvo.hasAttribute("tabindex")) alvo.setAttribute("tabindex", "-1");
+      alvo.focus({ preventScroll: true });
+    }
+  });
 });
 
 export default router;

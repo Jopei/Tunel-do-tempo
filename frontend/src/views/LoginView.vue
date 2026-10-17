@@ -1,304 +1,278 @@
 <template>
-    <div class="login-page">
-        <div class="login-card">
-            <div class="login-image">
-                <img :src="imagemLogin" alt="Login" />
-            </div>
+  <div class="login-page tm-immersive">
+    <div class="login-card">
+      <div class="login-image">
+        <img
+          :src="imagemLogin"
+          alt=""
+          width="880"
+          height="450"
+          fetchpriority="high"
+          decoding="async"
+        />
+      </div>
 
-            <div class="login-form">
-                <h1>BEM VINDO MEU MANO!
-                </h1>
-                <p>
-                    Caso seja membro realize o Login, caso não seja entre como visitante.
-                </p>
+      <div class="login-form">
+        <h1 tabindex="-1">Que bom te ver por aqui.</h1>
+        <p>Entre com sua conta de membro ou continue como visitante.</p>
+        <p v-if="veioDeRotaProtegida" class="aviso" role="note">
+          Entre para ver as histórias da rua.
+        </p>
 
-                <form @submit.prevent="handleLogin">
-                    <div class="field">
-                        <label>Email</label>
-                        <input v-model="email" type="email" placeholder="Entre com o Seu email" required />
-                    </div>
+        <form novalidate @submit.prevent="handleLogin">
+          <v-text-field
+            id="login-email"
+            ref="emailRef"
+            v-model="email"
+            label="E-mail"
+            type="email"
+            autocomplete="email"
+            inputmode="email"
+            required
+            :error-messages="erros.email"
+            :aria-invalid="!!erros.email"
+            prepend-inner-icon="mdi-email-outline"
+          />
 
-                    <div class="field password-field">
-                        <label>Password</label>
+          <v-text-field
+            id="login-senha"
+            v-model="senha"
+            label="Senha"
+            :type="mostrarSenha ? 'text' : 'password'"
+            autocomplete="current-password"
+            required
+            :error-messages="erros.senha"
+            :aria-invalid="!!erros.senha"
+            prepend-inner-icon="mdi-lock-outline"
+          >
+            <template #append-inner>
+              <v-btn
+                type="button"
+                icon
+                variant="text"
+                size="small"
+                :aria-label="mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'"
+                :aria-pressed="mostrarSenha"
+                @click="mostrarSenha = !mostrarSenha"
+              >
+                <v-icon>{{ mostrarSenha ? "mdi-eye-off-outline" : "mdi-eye-outline" }}</v-icon>
+              </v-btn>
+            </template>
+          </v-text-field>
 
-                        <div class="password-wrapper">
-                            <input
-                                v-model="senha"
-                                :type="mostrarSenha ? 'text' : 'password'"
-                                placeholder="********"
-                                required
-                            />
+          <v-alert
+            v-if="erro"
+            type="error"
+            variant="tonal"
+            density="comfortable"
+            class="mb-4 text-left"
+            role="alert"
+            icon="mdi-alert-circle-outline"
+          >
+            {{ erro }}
+          </v-alert>
 
-                            <span class="toggle-password" @click="toggleSenha">
-                                {{ mostrarSenha ? "🙈" : "👁️" }}
-                            </span>
-                        </div>
-                    </div>
+          <div class="esqueci">
+            <router-link :to="{ name: 'esqueci-senha', query: email ? { email } : {} }">Esqueci minha senha</router-link>
+          </div>
 
-                    <button type="submit" :disabled="loading">
-                        {{ loading ? "Entrando..." : "Entrar" }}
-                    </button>
-                </form>
+          <v-btn
+            type="submit"
+            color="primary"
+            variant="flat"
+            size="large"
+            block
+            :loading="loading"
+            :aria-busy="loading"
+            class="entrar"
+          >
+            {{ loading ? "Entrando..." : "Entrar" }}
+          </v-btn>
+        </form>
 
-                <div class="visitor">
-                    Visitante? Bem vindo!
-                    <span @click="entrarComoVisitante"> clique aqui </span>
-                </div>
-
-                <p v-if="erro" class="error">
-                    {{ erro }}
-                </p>
-            </div>
+        <div class="outros">
+          <v-btn variant="text" color="primary-text" @click="entrarComoVisitante">
+            Continuar como visitante
+          </v-btn>
+          <router-link to="/cadastrar/usuarios" class="convite">
+            Tem uma chave de convite? Cadastre-se
+          </router-link>
         </div>
+      </div>
     </div>
+  </div>
 </template>
+
 <script setup>
-import { ref, onMounted } from "vue";
-import { useRouter } from "vue-router";
+import { ref, computed } from "vue";
+import { useRouter, useRoute } from "vue-router";
 import { login } from "@/services/auth.service";
-import { useAuthStore } from "@/stores/auth";
+import { useNotify } from "@/composables/useNotify";
+import { interpretarErro } from "@/composables/useApiError";
+
+const router = useRouter();
+const route = useRoute();
+const notify = useNotify();
 
 const email = ref("");
 const senha = ref("");
 const erro = ref("");
+const erros = ref({});
 const loading = ref(false);
-const imagemLogin = ref("");
 const mostrarSenha = ref(false);
-const authStore = useAuthStore();
+const emailRef = ref(null);
 
-const router = useRouter();
+// Sorteio síncrono: evita o flash de imagem vazia
+const imagemLogin = `/login/${Math.floor(Math.random() * 10) + 1}.jpg`;
 
-function toggleSenha() {
-    mostrarSenha.value = !mostrarSenha.value;
+const veioDeRotaProtegida = computed(() => !!route.query.redirect);
+
+function destinoSeguro() {
+  const r = route.query.redirect;
+  return typeof r === "string" && r.startsWith("/") && !r.startsWith("//") ? r : "/";
 }
 
-function escolherImagemRandomica() {
-    const TOTAL_IMAGENS = 10;
-    const numero = Math.floor(Math.random() * TOTAL_IMAGENS) + 1;
-
-    imagemLogin.value = `/login/${numero}.jpg`;
+function validar() {
+  const e = {};
+  if (!email.value.trim()) e.email = "Informe seu e-mail.";
+  else if (!/^\S+@\S+\.\S+$/.test(email.value.trim())) e.email = "Digite um e-mail válido.";
+  if (!senha.value) e.senha = "Informe sua senha.";
+  erros.value = e;
+  return Object.keys(e).length === 0;
 }
 
 async function handleLogin() {
-    erro.value = "";
-    loading.value = true;
+  erro.value = "";
+  if (!validar()) return;
+  loading.value = true;
 
-    try {
-        const response = await login(email.value, senha.value);
-
-        authStore.setUsuario(response.usuario);
-
-        router.push("/");
-    } catch (e) {
-        erro.value =
-            e.response?.data?.message || "Erro ao realizar login.";
-    } finally {
-        loading.value = false;
-    }
+  try {
+    const response = await login(email.value.trim(), senha.value);
+    const primeiroNome = response.usuario?.nome?.split(" ")[0];
+    notify.sucesso(primeiroNome ? `Bem-vindo de volta, ${primeiroNome}.` : "Bem-vindo de volta.");
+    router.push(destinoSeguro());
+  } catch (e) {
+    const info = interpretarErro(e);
+    if (info.status === 401) erro.value = "E-mail ou senha incorretos.";
+    else if (info.status === 422) erro.value = "Confira o e-mail e a senha informados.";
+    else erro.value = info.mensagem;
+    senha.value = "";
+    emailRef.value?.focus?.();
+  } finally {
+    loading.value = false;
+  }
 }
 
 function entrarComoVisitante() {
-    router.push("/");
+  router.push("/");
 }
-
-onMounted(() => {
-    escolherImagemRandomica();
-});
 </script>
+
 <style scoped>
 .login-page {
-    min-height: 100vh;
-    background: url("/backgrounds/login-bg.svg") no-repeat center center;
-    background-size: cover;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  min-height: 100dvh;
+  background: url("/backgrounds/login-bg.svg") no-repeat center center;
+  background-size: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
 }
 
-/* CARD MAIOR */
 .login-card {
-    width: 880px;
-    min-height: 720px;
-    background: #ffffff;
-    border-radius: 32px;
-    overflow: hidden;
-    box-shadow: 0 25px 70px rgba(0, 0, 0, 0.28);
-    display: flex;
-    flex-direction: column;
-    animation:
-        fadeUp 0.6s ease-out both;
+  width: 880px;
+  max-width: 100%;
+  background: rgb(var(--v-theme-surface));
+  color: rgb(var(--v-theme-on-surface));
+  border-radius: var(--tm-radius-xl);
+  overflow: hidden;
+  box-shadow: var(--tm-shadow-lg);
+  display: flex;
+  flex-direction: column;
+  animation: tm-fade-up 0.6s var(--tm-ease) both;
 }
 
-/* IMAGEM MAIS ALTA */
 .login-image {
-    height: 450px;
+  height: 450px;
+  background: rgb(var(--v-theme-surface-variant));
 }
 
 .login-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
-/* FORM */
 .login-form {
-    padding: 40px 44px;
-    text-align: center;
-    flex: 1;
+  padding: 40px 44px;
+  text-align: center;
+  max-width: 520px;
+  width: 100%;
+  margin: 0 auto;
 }
 
 .login-form h1 {
-    font-size: 26px;
-    font-weight: 700;
-    margin-bottom: 10px;
+  font-size: var(--tm-fs-2xl);
+  margin-bottom: 8px;
 }
 
 .login-form p {
-    font-size: 15px;
-    color: #666;
-    margin-bottom: 32px;
+  color: var(--tm-ink-muted);
+  margin-bottom: 24px;
 }
 
-.field {
-    margin-bottom: 22px;
-    text-align: left;
+.login-form .aviso {
+  color: var(--tm-gold-text);
+  font-weight: 600;
 }
 
-.field label {
-    display: block;
-    font-size: 14px;
-    font-weight: 600;
-    margin-bottom: 8px;
+.entrar {
+  color: rgb(var(--v-theme-on-primary)) !important;
+  font-weight: 700;
 }
 
-.field input {
-    width: 100%;
-    padding: 12px 16px;
-    border-radius: 12px;
-    border: 1px solid #ccc;
-    font-size: 15px;
+.outros {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
 }
 
-/* BOTÃO */
-button {
-    width: 50%;
-    margin: 14px auto 0;
-    padding: 14px 12px;
-    border: none;
-    border-radius: 16px;
-    background: #c7a43a;
-    color: #fff;
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.15s ease;
+.convite {
+  color: var(--tm-gold-text);
+  font-size: var(--tm-fs-sm);
+  padding: 8px;
 }
 
-/* hover */
-button:hover:not(:disabled) {
-    background: #b89630;
-    transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
-}
-
-/* active */
-button:active:not(:disabled) {
-    transform: translateY(0);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.14);
-}
-
-button:disabled {
-    opacity: 0.7;
-    cursor: default;
-}
-
-.visitor {
-    margin-top: 22px;
-    font-size: 14px;
-    color: #555;
-}
-
-.visitor span {
-    color: #c7a43a;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.error {
-    margin-top: 14px;
-    color: red;
-    font-size: 14px;
-}
-
-.password-field .password-wrapper {
-    position: relative;
-}
-
-.password-field input {
-    padding-right: 44px;
-}
-
-.toggle-password {
-    position: absolute;
-    right: 14px;
-    top: 50%;
-    transform: translateY(-50%);
-    cursor: pointer;
-    font-size: 16px;
-    opacity: 0.7;
-    transition: opacity 0.2s ease;
-}
-
-.toggle-password:hover {
-    opacity: 1;
-}
-
-@keyframes fadeUp {
-    from {
-        opacity: 0;
-        transform: translateY(24px) scale(0.98);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-
-/* ========================= */
-/* MOBILE ONLY – ADAPTAÇÃO */
-/* ========================= */
 @media (max-width: 600px) {
-    .login-page {
-        padding: 16px;
-        align-items: flex-start;
-    }
+  .login-page {
+    padding: 0;
+    align-items: stretch;
+  }
 
-    .login-card {
-        width: 100%;
-        min-height: auto;
-        border-radius: 24px 24px 0 0;
-    }
+  .login-card {
+    border-radius: var(--tm-radius-lg);
+    margin: 12px;
+  }
 
-    .login-image {
-        height: 220px;
-    }
+  .login-image {
+    height: 220px;
+  }
 
-    .login-form {
-        padding: 28px 22px;
-    }
-
-    .login-form h1 {
-        font-size: 22px;
-    }
-
-    .login-form p {
-        font-size: 14px;
-        margin-bottom: 24px;
-    }
-
-    button {
-        width: 100%;
-    }
+  .login-form {
+    padding: 28px 20px;
+  }
+}
+.esqueci {
+  text-align: right;
+  margin: -8px 0 16px;
+}
+.esqueci a {
+  color: var(--tm-gold-text);
+  font-weight: 600;
+  display: inline-block;
+  padding: 10px 0;
 }
 </style>

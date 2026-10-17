@@ -1,91 +1,113 @@
 <template>
-  <v-dialog v-model="dialog" max-width="800">
-    <v-card class="card">
-
-      <v-icon class="fechar" @click="fechar">
-        mdi-close
-      </v-icon>
-
-      <h1>Cadastrar Vídeo</h1>
-
-      <div v-if="sucesso" class="sucesso-msg">
-        Vídeo cadastrado com sucesso 🎬
+  <TmFormDialog
+    v-model="dialog"
+    titulo="Adicionar vídeo"
+    max-width="640"
+    :bloqueado="loading"
+    :sujo="sujo"
+    @descartar="limpar"
+  >
+    <form id="form-video" novalidate @submit.prevent="salvar">
+      <div v-if="preview" class="preview-box">
+        <video :src="preview" class="preview" controls muted preload="metadata" :aria-label="`Pré-visualização de ${video?.name}`" />
+        <v-btn
+          icon
+          size="small"
+          variant="flat"
+          color="surface"
+          class="remover"
+          :aria-label="`Remover ${video?.name}`"
+          :disabled="loading"
+          @click="removerVideo"
+        >
+          <v-icon>mdi-close</v-icon>
+        </v-btn>
+        <p class="arquivo">{{ video?.name }} · {{ formatarTamanho(video?.size || 0) }}</p>
       </div>
+      <TmDropzone
+        v-else
+        accept="video/mp4,video/quicktime,video/x-msvideo"
+        :max-mb="TAMANHO_MAX_MB"
+        icone="mdi-video-outline"
+        rotulo="Arraste o vídeo para cá (MP4, MOV ou AVI)"
+        :erro-externo="erros.video || ''"
+        @arquivos="escolher"
+      />
 
-      <!-- VIDEO -->
-      <div class="video-container">
-        <label class="video-upload">
+      <v-text-field v-model="titulo" label="Título" class="mt-4" :error-messages="erros.titulo" :disabled="loading" autocomplete="off" />
+      <v-textarea v-model="descricao" label="Descrição" rows="2" auto-grow :error-messages="erros.descricao" :disabled="loading" />
 
-          <video v-if="videoPreview" :src="videoPreview" class="video-preview" muted controls />
-
-          <div v-else class="video-placeholder">
-            <span>Adicionar Vídeo *</span>
-          </div>
-
-          <input type="file" accept="video/*" @change="onVideo" />
-        </label>
+      <div v-if="loading" class="progresso" role="status" aria-live="polite">
+        <v-progress-linear :model-value="progresso" color="primary" height="8" rounded />
+        <span>Enviando {{ progresso }}% — não feche esta página.</span>
       </div>
+    </form>
 
-      <div class="field">
-        <label>Título</label>
-        <input v-model="titulo" type="text" :class="{ erro: errors.titulo }" />
-      </div>
-
-      <div class="field">
-        <label>Descrição</label>
-        <textarea v-model="descricao" rows="2"></textarea>
-      </div>
-
-      <div class="botao-container">
-        <button @click="salvar" :disabled="loading">
-          <span v-if="loading">Enviando...</span>
-          <span v-else>Cadastrar Vídeo</span>
-        </button>
-      </div>
-
-    </v-card>
-  </v-dialog>
+    <template #acoes>
+      <v-btn v-if="loading" variant="text" color="on-surface" @click="cancelar">Cancelar envio</v-btn>
+      <v-btn variant="flat" color="primary" type="submit" form="form-video" :loading="loading" :disabled="loading">
+        Adicionar vídeo
+      </v-btn>
+    </template>
+  </TmFormDialog>
 </template>
+
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onBeforeUnmount } from "vue";
 import { cadastrarVideo } from "@/services/video.service";
+import { useApiError } from "@/composables/useApiError";
+import { useNotify } from "@/composables/useNotify";
+import { videoCriado } from "@/composables/useMidiaEventos";
+import { formatarTamanho } from "@/composables/useArquivos";
+import TmFormDialog from "@/components/ui/TmFormDialog.vue";
+import TmDropzone from "@/components/ui/TmDropzone.vue";
 
-const props = defineProps({
-  modelValue: Boolean
-});
+// Mesmo limite do servidor.
+const TAMANHO_MAX_MB = 50;
 
+const props = defineProps({ modelValue: Boolean });
 const emit = defineEmits(["update:modelValue", "sucesso"]);
 
 const dialog = computed({
   get: () => props.modelValue,
-  set: (val) => emit("update:modelValue", val)
+  set: (val) => emit("update:modelValue", val),
 });
+
+const { tratar, focarPrimeiroInvalido } = useApiError();
+const notify = useNotify();
 
 const titulo = ref("");
 const descricao = ref("");
 const video = ref(null);
-const videoPreview = ref(null);
-
+const preview = ref(null);
 const loading = ref(false);
-const sucesso = ref(false);
-const errors = ref({});
+const progresso = ref(0);
+const erros = ref({});
+let controller = null;
 
-function onVideo(e) {
-  video.value = e.target.files[0];
+const sujo = computed(() => !!(titulo.value || descricao.value || video.value));
 
-  if (video.value) {
-    videoPreview.value = URL.createObjectURL(video.value);
-  }
+function escolher([arquivo]) {
+  removerVideo();
+  video.value = arquivo;
+  preview.value = URL.createObjectURL(arquivo);
+  erros.value = {};
+}
+
+function removerVideo() {
+  if (preview.value) URL.revokeObjectURL(preview.value);
+  preview.value = null;
+  video.value = null;
+}
+
+function cancelar() {
+  controller?.abort();
 }
 
 async function salvar() {
-  loading.value = true;
-  sucesso.value = false;
-  errors.value = {};
-
+  erros.value = {};
   if (!video.value) {
-    errors.value.video = ["Selecione um vídeo."];
-    loading.value = false;
+    erros.value = { video: "Selecione um vídeo." };
     return;
   }
 
@@ -94,149 +116,76 @@ async function salvar() {
   form.append("descricao", descricao.value);
   form.append("video", video.value);
 
+  loading.value = true;
+  progresso.value = 0;
+  controller = new AbortController();
+
   try {
-    await cadastrarVideo(form);
-
-    sucesso.value = true;
-
-    setTimeout(() => {
-      window.location.reload();
-    }, 3000);
-
+    await cadastrarVideo(form, {
+      signal: controller.signal,
+      onUploadProgress: (e) => {
+        if (e.total) progresso.value = Math.round((e.loaded / e.total) * 100);
+      },
+    });
+    notify.sucesso("Vídeo adicionado.");
+    videoCriado.value++;
+    emit("sucesso");
+    limpar();
+    dialog.value = false;
   } catch (e) {
-    if (e.response?.status === 422) {
-      errors.value = e.response.data.errors || {};
+    if (e?.code === "ERR_CANCELED") {
+      notify.info("Envio cancelado.");
+    } else {
+      const info = tratar(e);
+      erros.value = info.campos;
+      if (Object.keys(info.campos).length) focarPrimeiroInvalido();
     }
   } finally {
     loading.value = false;
+    controller = null;
   }
 }
 
 function limpar() {
   titulo.value = "";
   descricao.value = "";
-  video.value = null;
-  videoPreview.value = null;
+  erros.value = {};
+  removerVideo();
 }
 
-function fechar() {
-  dialog.value = false;
-}
+onBeforeUnmount(() => {
+  controller?.abort();
+  removerVideo();
+});
 </script>
+
 <style scoped>
-.card {
+.preview-box {
   position: relative;
-  background: #fbf6e6;
-  padding: 50px;
-  border-radius: 28px;
-  box-shadow: 0 30px 80px rgba(0, 0, 0, .3);
-}
-
-h1 {
   text-align: center;
-  margin-bottom: 30px;
 }
-
-.fechar {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  cursor: pointer;
-}
-
-.video-container {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 30px;
-}
-
-.video-upload input {
-  display: none;
-}
-
-.video-placeholder,
-.video-preview {
-  width: 320px;
-  height: 180px;
-  border-radius: 16px;
-  background: rgba(199, 164, 58, .15);
-  border: 3px dashed #c7a43a;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.video-preview {
-  object-fit: cover;
-  border: 3px solid #c7a43a;
-}
-
-.field {
-  margin-bottom: 20px;
-}
-
-input,
-textarea,
-select {
+.preview {
   width: 100%;
-  padding: 12px 14px;
-  border-radius: 12px;
-  border: 1px solid #ccc;
+  max-height: 280px;
+  border-radius: var(--tm-radius-md);
+  background: #000;
 }
-
-.botao-container {
-  margin-top: 30px;
-  text-align: center;
+.remover {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 44px;
+  height: 44px;
 }
-
-button {
-  padding: 14px 46px;
-  border-radius: 18px;
-  background: #c7a43a;
-  color: #fff;
-  font-weight: 700;
-  border: none;
-  cursor: pointer;
-  transition: all .2s ease;
+.arquivo {
+  margin: var(--tm-space-2) 0 0;
+  font-size: var(--tm-fs-sm);
+  color: var(--tm-ink-muted);
 }
-
-button:hover {
-  background: #b89630;
-  transform: translateY(-2px);
-}
-
-button:disabled {
-  opacity: .7;
-  cursor: not-allowed;
-}
-
-:deep(.v-overlay__content) {
-  border-radius: 32px !important;
-  overflow: hidden;
-}
-
-.card {
-  position: relative;
-  background: #fbf6e6;
-  padding: 50px;
-  border-radius: 32px;
-  /* mais arredondado */
-  box-shadow: 0 30px 80px rgba(0, 0, 0, .3);
-}
-
-.sucesso-msg {
-  background: rgba(46, 204, 113, .2);
-  border: 2px solid #2ecc71;
-  padding: 12px;
-  border-radius: 12px;
-  margin-bottom: 20px;
-  font-weight: 600;
-}
-
-.erro {
-  border-color: #c0392b !important;
-  box-shadow: 0 0 0 2px rgba(192, 57, 43, .25);
+.progresso {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tm-space-2);
+  font-size: var(--tm-fs-sm);
 }
 </style>

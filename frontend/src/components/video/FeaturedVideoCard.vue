@@ -1,87 +1,57 @@
 <template>
   <div class="video-card">
-    <div class="video-frame" @click="play = true">
-      <div v-if="!play" class="play-overlay">
-        <div class="play-triangle"></div>
-      </div>
-
+    <div class="video-frame">
       <video
         v-if="play"
+        ref="videoRef"
         class="video"
         src="/videos/Abertura.mp4"
         controls
         autoplay
+        playsinline
+        aria-label="Vídeo de abertura do Túnel do Tempo"
       />
-
-      <div v-else class="video-placeholder" />
+      <button v-else type="button" class="play-btn" aria-label="Reproduzir vídeo de abertura" @click="play = true">
+        <span class="play-circulo" aria-hidden="true">
+          <v-icon size="48" color="white">mdi-play</v-icon>
+        </span>
+      </button>
     </div>
 
     <div class="video-footer">
-      <div class="author-info">
-        <div class="title">TUDO COMEÇA AQUI 👆</div>
-
-        <div class="author-inline">
-          <img
-            src="/avatar-ze-paulo.png"
-            alt="Zé Paulo"
-            class="avatar-inline"
-          />
-
-          <div class="author-text-inline">
-            <div class="author-name">
-              Zé Paulo
-              <span class="verified">✔</span>
-            </div>
-            <div class="subscribers">13k de inscritos</div>
-          </div>
-        </div>
-      </div>
-
-      <button class="know-btn">Conheça</button>
-    </div>
-
-    <div class="description-box">
-      <div class="time">há algumas tardes</div>
-      <div class="description">
-        Quanto Mais Eu Como, Mais Fome Eu Sinto !
+      <h2 class="title tm-title">Tudo começa aqui</h2>
+      <div class="author-inline">
+        <img src="/avatar-ze-paulo.png" alt="" class="avatar-inline" width="40" height="40" loading="lazy" />
+        <span class="author-name">Zé Paulo</span>
       </div>
     </div>
   </div>
 </template>
+
 <script setup>
 import { ref } from "vue";
 
+// O clique do usuário é o gesto que autoriza o autoplay com som.
 const play = ref(false);
 </script>
+
 <style scoped>
-/* CARD */
 .video-card {
   width: 100%;
   max-width: 880px;
-  background: #0f0f0f;
-  border-radius: 28px;
-  padding: 16px;
-  box-shadow: 0 24px 40px rgba(0, 0, 0, 0.35);
+  background: #14110b;
+  color: #fff;
+  border-radius: var(--tm-radius-lg);
+  padding: var(--tm-space-4);
+  box-shadow: var(--tm-shadow-lg);
 }
 
-/* VIDEO */
 .video-frame {
   position: relative;
-  height: 420px;
-  border-radius: 20px;
-  background: #1a1a1a;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--tm-radius-md);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(0, 0, 0, 0.6)), #1e1a12;
   overflow: hidden;
-  cursor: pointer;
-}
-
-.video-placeholder {
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.08),
-    rgba(0, 0, 0, 0.6)
-  );
 }
 
 .video {
@@ -90,50 +60,53 @@ const play = ref(false);
   object-fit: cover;
 }
 
-/* PLAY */
-.play-overlay {
+.play-btn {
   position: absolute;
   inset: 0;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  pointer-events: none;
+}
+.play-circulo {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: rgba(199, 164, 58, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform var(--tm-dur-base) var(--tm-ease);
+}
+.play-btn:hover .play-circulo {
+  transform: scale(1.08);
+}
+.play-btn:focus-visible {
+  outline-color: #f0c86a;
+  outline-offset: -6px;
 }
 
-.play-triangle {
-  width: 0;
-  height: 0;
-  border-left: 52px solid #ffffff;
-  border-top: 30px solid transparent;
-  border-bottom: 30px solid transparent;
-  opacity: 0.9;
-}
-
-/* FOOTER */
 .video-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 18px;
-  gap: 16px;
-}
-
-.author-info {
-  display: flex;
-  flex-direction: column;
+  margin-top: var(--tm-space-4);
+  gap: var(--tm-space-4);
+  flex-wrap: wrap;
 }
 
 .title {
-  font-size: 16px;
-  font-weight: 700;
-  color: #ffffff;
-  margin-bottom: 6px;
+  font-size: var(--tm-fs-lg);
+  margin: 0;
 }
 
 .author-inline {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--tm-space-3);
 }
 
 .avatar-inline {
@@ -144,85 +117,7 @@ const play = ref(false);
   object-fit: cover;
 }
 
-.author-text-inline {
-  display: flex;
-  flex-direction: column;
-}
-
 .author-name {
-  font-size: 15px;
-  font-weight: 700;
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.verified {
-  font-size: 14px;
-  color: #3ea6ff;
-}
-
-.subscribers {
-  font-size: 14px;
-  color: #cfcfcf;
-}
-
-/* DESCRIPTION */
-.description-box {
-  margin-top: 12px;
-  background: #2b2b2b;
-  border-radius: 10px;
-  padding: 8px 14px;
-}
-
-.time {
-  font-size: 13px;
-  color: #bdbdbd;
-  margin-bottom: 4px;
-}
-
-.description {
-  font-size: 14px;
-  color: #ffffff;
-  line-height: 1.4;
-}
-
-/* BUTTON */
-.know-btn {
-  background: #ff0000;
-  color: #ffffff;
-  border: none;
-  border-radius: 10px;
-  padding: 10px 18px;
-  cursor: pointer;
   font-weight: 600;
-  white-space: nowrap;
-}
-
-/* MOBILE ONLY */
-@media (max-width: 600px) {
-  .video-frame {
-    height: 220px;
-  }
-
-  .video-footer {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .know-btn {
-    width: 100%;
-    text-align: center;
-    padding: 14px;
-  }
-
-  .title {
-    font-size: 15px;
-  }
-
-  .description {
-    font-size: 13px;
-  }
 }
 </style>

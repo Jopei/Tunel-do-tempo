@@ -1,237 +1,98 @@
 <template>
-    <v-dialog v-model="dialog" max-width="1200">
-        <v-card class="galeria-card">
-            <v-card-title class="titulo">
-                Galeria da História
-            </v-card-title>
+  <TmFormDialog :model-value="modelValue" titulo="Fotos da história" max-width="1200" @update:model-value="(v) => emit('update:modelValue', v)">
+    <p v-if="!itens.length" class="vazio">Nenhuma foto nesta história.</p>
+    <ul v-else class="grid-fotos">
+      <li v-for="(foto, i) in itens" :key="foto.uuid">
+        <button type="button" class="thumb" :aria-label="`Abrir ${foto.titulo}`" @click="abrir(i)">
+          <img :src="foto.url" :alt="foto.titulo" loading="lazy" decoding="async" width="250" height="250" />
+        </button>
+      </li>
+    </ul>
+  </TmFormDialog>
 
-            <v-card-text>
-                <div v-if="!fotosCarregadas.length" class="sem-fotos">
-                    Nenhuma imagem disponível.
-                </div>
-
-                <div v-else class="grid-fotos">
-                    <div v-for="foto in fotosCarregadas" :key="foto.uuid" class="foto-item"
-                        @click="ampliarFoto(foto.url)">
-                        <img :src="foto.url" />
-                    </div>
-                </div>
-            </v-card-text>
-
-            <v-card-actions>
-                <v-spacer />
-                <v-btn @click="dialog = false">
-                    Fechar
-                </v-btn>
-            </v-card-actions>
-        </v-card>
-    </v-dialog>
-
-    <!-- VISUALIZADOR CENTRAL -->
-    <v-dialog v-model="fotoSelecionada" fullscreen transition="dialog-bottom-transition">
-        <v-card class="viewer-card">
-            <v-icon class="fechar-viewer" @click="fotoSelecionada = null">
-                mdi-close
-            </v-icon>
-
-            <img :src="fotoSelecionada" class="viewer-img" />
-        </v-card>
-    </v-dialog>
+  <TmLightbox v-model="lightbox" :itens="itens" :inicio="inicio" tipo="foto" compartilhavel @compartilhar="copiar" />
 </template>
 
 <script setup>
-import { ref, watch, computed } from "vue";
-import { buscarFotoPorUuid } from "@/services/foto.show.service";
+import { ref, computed } from "vue";
+import { urlFoto } from "@/services/midia.url";
+import { useNotify } from "@/composables/useNotify";
+import TmFormDialog from "@/components/ui/TmFormDialog.vue";
+import TmLightbox from "@/components/ui/TmLightbox.vue";
 
 const props = defineProps({
-    fotos: {
-        type: Array,
-        default: () => []
-    },
-    modelValue: {
-        type: Boolean,
-        default: false
-    }
+  fotos: { type: Array, default: () => [] },
+  /** [{uuid,url,titulo,descricao}] quando a API traz; senão usa os uuids */
+  midia: { type: Array, default: null },
+  modelValue: { type: Boolean, default: false },
+  tituloHistoria: { type: String, default: "" },
 });
-
 const emit = defineEmits(["update:modelValue"]);
 
-const dialog = computed({
-    get: () => props.modelValue,
-    set: (val) => emit("update:modelValue", val)
+const notify = useNotify();
+const lightbox = ref(false);
+const inicio = ref(0);
+
+// Os uuids vêm da história; as URLs são diretas, então todas as fotos carregam em paralelo.
+const itens = computed(() => {
+  const base = props.midia?.length ? props.midia : props.fotos.map((uuid) => ({ uuid }));
+  return base.map((f, i) => ({
+    uuid: f.uuid,
+    url: f.url || urlFoto(f.uuid),
+    descricao: f.descricao || "",
+    titulo: f.titulo || `Foto ${i + 1} de ${base.length}${props.tituloHistoria ? ` da história ${props.tituloHistoria}` : ""}`,
+  }));
 });
 
-const fotosCarregadas = ref([]);
-const fotoSelecionada = ref(null);
+function abrir(i) {
+  inicio.value = i;
+  lightbox.value = true;
+}
 
-watch(
-    () => dialog.value,
-    async (aberto) => {
-        if (aberto && props.fotos.length) {
-            fotosCarregadas.value = [];
-
-            for (const uuid of props.fotos) {
-                try {
-                    const url = await buscarFotoPorUuid(uuid);
-                    fotosCarregadas.value.push({ uuid, url });
-                } catch (e) {
-                    console.error("Erro ao carregar foto:", uuid);
-                }
-            }
-        }
-    }
-);
-
-function ampliarFoto(url) {
-    fotoSelecionada.value = url;
+async function copiar(foto) {
+  try {
+    await navigator.clipboard.writeText(`${location.origin}/galeria-fotos?foto=${foto.uuid}`);
+    notify.sucesso("Link copiado.");
+  } catch {
+    notify.erro("Não foi possível copiar o link.");
+  }
 }
 </script>
 
 <style scoped>
-/* CARD PADRÃO TÚNEL DO TEMPO */
-.galeria-card {
-    background: #fbf6e6;
-    border-radius: 32px;
-    padding: 28px;
-    box-shadow: 0 30px 80px rgba(0, 0, 0, .25);
+.vazio {
+  text-align: center;
+  padding: var(--tm-space-7);
+  color: var(--tm-ink-muted);
 }
-
-.titulo {
-    font-weight: 800;
-    font-size: 22px;
-    text-align: center;
-    color: #333;
-    margin-bottom: 10px;
-}
-
-/* SEM FOTO */
-.sem-fotos {
-    text-align: center;
-    font-weight: 700;
-    padding: 40px;
-    color: #777;
-}
-
-/* GRID */
 .grid-fotos {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 28px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--tm-space-4);
 }
-
-/* FOTO ITEM */
-.foto-item {
-    background: rgba(199, 164, 58, 0.12);
-    border: 2px solid rgba(199, 164, 58, 0.35);
-    border-radius: 22px;
-    padding: 14px;
-    cursor: pointer;
-
-    transition: all .25s ease;
+.thumb {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 1px solid var(--tm-border);
+  border-radius: var(--tm-radius-md);
+  overflow: hidden;
+  background: rgb(var(--v-theme-surface-variant));
+  cursor: pointer;
+  transition: transform var(--tm-dur-base) var(--tm-ease), box-shadow var(--tm-dur-base) var(--tm-ease);
 }
-
-.foto-item:hover {
-    background: rgba(199, 164, 58, 0.22);
-    border-color: #c7a43a;
-    transform: translateY(-8px);
-    box-shadow: 0 18px 40px rgba(0, 0, 0, .18);
+.thumb:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--tm-shadow-md);
 }
-
-.foto-item img {
-    width: 100%;
-    border-radius: 16px;
-    object-fit: cover;
-    transition: transform .3s ease;
-}
-
-.foto-item:hover img {
-    transform: scale(1.04);
-}
-
-/* ========================= */
-/* VISUALIZADOR CENTRAL */
-/* ========================= */
-
-.viewer-card {
-    background: rgba(0, 0, 0, 0.96);
-    height: 100vh;
-    width: 100vw;
-
-    display: flex;
-    justify-content: center;
-    align-items: center;
-
-    position: relative;
-}
-
-/* IMAGEM GRANDE */
-.viewer-img {
-    max-width: 92vw;
-    max-height: 92vh;
-
-    border-radius: 18px;
-    box-shadow: 0 40px 100px rgba(0, 0, 0, .7);
-
-    object-fit: contain;
-}
-
-/* BOTÃO FECHAR */
-.fechar-viewer {
-    position: absolute;
-    top: 30px;
-    right: 40px;
-
-    font-size: 34px;
-    color: #fff;
-
-    cursor: pointer;
-    transition: transform .2s ease, opacity .2s ease;
-}
-
-.fechar-viewer:hover {
-    transform: scale(1.2);
-    opacity: .8;
-}
-
-/* RESPONSIVO */
-@media (max-width: 600px) {
-
-  /* CARD GALERIA */
-  .galeria-card {
-    padding: 20px;
-    border-radius: 24px 24px 0 0;
-  }
-
-  .grid-fotos {
-    grid-template-columns: 1fr;
-    gap: 18px;
-  }
-
-  /* FOTO ITEM */
-  .foto-item {
-    padding: 10px;
-  }
-
-  /* ========================= */
-  /* VIEWER FULLSCREEN MOBILE */
-  /* ========================= */
-
-  .viewer-card {
-    padding: 20px;
-    align-items: center;
-  }
-
-  .viewer-img {
-    max-width: 95vw;
-    max-height: 75vh;
-    border-radius: 14px;
-  }
-
-  .fechar-viewer {
-    top: 18px;
-    right: 18px;
-    font-size: 28px;
-  }
-
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 </style>

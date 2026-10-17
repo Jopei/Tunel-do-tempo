@@ -1,25 +1,22 @@
 <template>
-  <header class="rua-header">
-    <UserMenu v-if="authStore.logado" />
-  </header>
-
-  <section class="rua-page">
+  <section class="rua-page tm-immersive">
     <div class="rua-card page-reveal">
-      <RuaHeader />
-
       <div class="rua-body">
         <div class="texto">
-          <br>
-          <span class="sub">Clique em uma logo.</span>
+          <p class="dica">
+            <v-icon size="20" aria-hidden="true">mdi-gesture-tap</v-icon>
+            {{ mobile ? "Toque" : "Clique" }} em um círculo para explorar
+          </p>
 
           <h1>
             Um projeto feito<br />
             por <span>amigos.</span>
           </h1>
 
-          <button class="cta" @click="irParaCadastro">
-            Siga aqui
-          </button>
+          <v-btn v-if="!auth.logado" to="/cadastrar/usuarios" size="large" variant="flat" color="primary" class="cta">
+            Quero fazer parte
+          </v-btn>
+          <v-btn v-else to="/membros" size="large" variant="flat" color="primary" class="cta">Ver membros</v-btn>
         </div>
 
         <RuaOrbita />
@@ -29,42 +26,40 @@
 </template>
 
 <script setup>
-import RuaHeader from "@/components/rua/RuaHeader.vue";
-import RuaOrbita from "@/components/rua/RuaOrbita.vue";
-import UserMenu from "@/components/layout/UserMenu.vue";
-
-import { useRouter } from "vue-router";
+import { onMounted } from "vue";
+import { useDisplay } from "vuetify";
 import { useAuthStore } from "@/stores/auth";
+import { finalizarTransicao } from "@/composables/useTransicao";
+import RuaOrbita from "@/components/rua/RuaOrbita.vue";
 
-const authStore = useAuthStore();
-const router = useRouter();
+const auth = useAuthStore();
+const { mobile } = useDisplay();
 
-function irParaCadastro() {
-  router.push("/cadastrar/usuarios");
-}
+onMounted(finalizarTransicao);
 </script>
 
 <style scoped>
 .rua-page {
-  min-height: 100vh;
+  min-height: 100dvh;
   background: url("/backgrounds/home-bg.svg") center/cover no-repeat;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
+  padding-top: calc(var(--tm-navbar-h) + 16px);
 }
 
 .rua-card {
-  width: 84%;
-  height: 88vh;
-  background: #fbf6e6;
+  width: min(1200px, 92%);
+  min-height: calc(100dvh - var(--tm-navbar-h) - 32px);
+  background: rgb(var(--v-theme-surface));
+  color: rgb(var(--v-theme-on-surface));
   border-radius: 48px 48px 0 0;
-  padding: 48px 64px;
+  padding: var(--tm-space-7) var(--tm-space-8);
   display: flex;
   flex-direction: column;
   position: relative;
   overflow: hidden;
   z-index: 2;
-  margin-top: 6%;
 }
 
 .rua-body {
@@ -72,175 +67,83 @@ function irParaCadastro() {
   display: grid;
   grid-template-columns: 1.2fr 1fr;
   align-items: center;
+  gap: var(--tm-space-5);
 }
 
 .texto {
-  padding-left: 24px;
+  padding-left: var(--tm-space-5);
 }
 
-.sub {
-  color: #c7a43a;
-  font-size: 20px;
+.dica {
+  color: var(--tm-gold-text);
+  font-size: var(--tm-fs-md);
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: var(--tm-space-2);
+  margin: 0;
 }
 
 h1 {
-  margin-top: 16px;
-  font-size: 52px;
-  font-weight: 900;
+  margin-top: var(--tm-space-4);
+  font-size: clamp(2.125rem, 5vw, 3.25rem);
+  font-weight: 700;
   line-height: 1.2;
 }
 
 h1 span {
-  color: red;
+  color: var(--tm-gold-text);
 }
 
 .cta {
-  margin-top: 32px;
-  padding: 14px 36px;
-  background: #c7a43a;
-  border: none;
-  border-radius: 14px;
-  color: #fff;
+  margin-top: var(--tm-space-6);
+  min-height: 48px;
   font-weight: 700;
-  cursor: pointer;
+}
+.cta :deep(.v-btn__content) {
+  color: rgb(var(--v-theme-on-primary));
 }
 
-/* HEADER USER */
-.rua-header {
-  position: relative;
-  width: 100%;
-  height: 0;
+.rua-body > :last-child {
+  justify-self: center;
 }
 
-.user-menu {
-  position: absolute;
-  top: 24px;
-  right: 32px;
-  z-index: 20;
-}
-
-.avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  overflow: hidden;
-  border: 2px solid #c7a43a;
-  cursor: pointer;
-  background: #fff;
-}
-
-.avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.avatar-icon {
-  font-size: 26px;
-  color: #c7a43a;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-}
-
-.dropdown {
-  position: absolute;
-  top: 58px;
-  right: 0;
-  width: 230px;
-  background: #fbf6e6;
-  border-radius: 16px;
-  padding: 12px 0;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
-}
-
-.dropdown span {
-  display: block;
-  padding: 10px 18px;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.dropdown span:hover {
-  background: rgba(199, 164, 58, 0.18);
-}
-
-.dropdown .sair {
-  color: #b00020;
-}
-
-/* AUDIO */
-.audio-control {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  border: none;
-  background: #c7a43a;
-  color: #fff;
-  font-size: 22px;
-  cursor: pointer;
-  z-index: 9999;
-}
-
-/* ANIMAÇÃO */
 .page-reveal {
   opacity: 0;
-  animation: fadeUpPage 0.9s ease-out forwards;
+  animation: tm-fade-up 0.9s var(--tm-ease) forwards;
 }
 
-@keyframes fadeUpPage {
-  from {
-    opacity: 0;
-    transform: translateY(32px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* MOBILE ONLY */
-@media (max-width: 600px) {
+@media (max-width: 960px) {
   .rua-card {
-    width: 100%;
-    height: auto;
-    padding: 24px 20px;
-    margin-top: 0;
-    border-radius: 24px 24px 0 0;
+    padding: var(--tm-space-6) var(--tm-space-5);
   }
-
   .rua-body {
-    display: flex;
-    flex-direction: column;
-    gap: 32px;
+    grid-template-columns: 1fr;
     text-align: center;
   }
-
   .texto {
     padding-left: 0;
   }
-
-  h1 {
-    font-size: 34px;
+  .dica {
+    justify-content: center;
   }
+}
 
-  .sub {
-    font-size: 16px;
+@media (max-width: 600px) {
+  .rua-card {
+    width: 100%;
+    border-radius: 24px 24px 0 0;
+    padding: var(--tm-space-5) var(--tm-space-4);
   }
-
   .cta {
     width: 100%;
   }
+}
 
-  .user-menu {
-    top: 16px;
-    right: 16px;
+@media (prefers-reduced-motion: reduce) {
+  .page-reveal {
+    opacity: 1;
+    animation: none;
   }
 }
 </style>

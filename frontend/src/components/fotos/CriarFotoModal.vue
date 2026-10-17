@@ -1,273 +1,204 @@
 <template>
-  <v-dialog v-model="dialog" max-width="800">
-    <v-card class="card">
-
-      <v-icon class="fechar" @click="fechar">
-        mdi-close
-      </v-icon>
-
-      <h1>Cadastrar Foto</h1>
-
-      <div class="foto-container">
-        <label class="foto-upload">
-          <img v-if="fotoPreview" :src="fotoPreview" class="foto-preview" />
-
-          <div v-else class="foto-placeholder">
-            <span>Adicionar Foto *</span>
-          </div>
-
-          <input type="file" accept="image/*" @change="onFoto" />
-        </label>
+  <TmFormDialog
+    v-model="dialog"
+    titulo="Adicionar foto"
+    max-width="640"
+    :bloqueado="loading"
+    :sujo="sujo"
+    @descartar="limpar"
+  >
+    <form id="form-foto" novalidate @submit.prevent="salvar">
+      <div v-if="preview" class="preview-box">
+        <img :src="preview" :alt="`Pré-visualização de ${foto?.name}`" class="preview" />
+        <v-btn
+          icon
+          size="small"
+          variant="flat"
+          color="surface"
+          class="remover"
+          :aria-label="`Remover ${foto?.name}`"
+          :disabled="loading"
+          @click="removerFoto"
+        >
+          <v-icon>mdi-close</v-icon>
+        </v-btn>
+        <p class="arquivo">{{ foto?.name }} · {{ formatarTamanho(foto?.size || 0) }}</p>
       </div>
+      <TmDropzone v-else accept="image/jpeg,image/png" :max-mb="40" rotulo="Arraste a foto para cá" :erro-externo="erros.imagem || ''" @arquivos="escolher" />
 
-      <div class="field">
-        <label>Título</label>
-        <input v-model="titulo" type="text" :class="{ erro: errors.titulo }" />
+      <v-text-field v-model="titulo" label="Título" class="mt-4" :error-messages="erros.titulo" :disabled="loading" autocomplete="off" />
+      <v-textarea v-model="descricao" label="Descrição" rows="2" auto-grow :error-messages="erros.descricao" :disabled="loading" />
+      <v-text-field
+        v-model="dataFoto"
+        label="Data da foto"
+        type="date"
+        :max="hoje"
+        :error-messages="erros.criado_em"
+        :disabled="loading"
+      />
+
+      <div v-if="loading" class="progresso" role="status" aria-live="polite">
+        <v-progress-linear :model-value="progresso" color="primary" height="8" rounded />
+        <span>Enviando {{ progresso }}% — não feche esta página.</span>
       </div>
+    </form>
 
-      <div class="field">
-        <label>Descrição</label>
-        <textarea v-model="descricao" rows="2"></textarea>
-      </div>
-
-      <div class="field">
-        <label>Data da Foto</label>
-        <input
-          v-model="dataFoto"
-          type="date"
-          :class="{ erro: errors.criado_em }"
-        />
-      </div>
-
-      <div class="botao-container">
-        <button @click="salvar" :disabled="loading">
-          <span v-if="loading">Enviando...</span>
-          <span v-else>Cadastrar Foto</span>
-        </button>
-      </div>
-
-    </v-card>
-  </v-dialog>
+    <template #acoes>
+      <v-btn v-if="loading" variant="text" color="on-surface" @click="cancelar">Cancelar envio</v-btn>
+      <v-btn variant="flat" color="primary" type="submit" form="form-foto" :loading="loading" :disabled="loading">
+        Adicionar foto
+      </v-btn>
+    </template>
+  </TmFormDialog>
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onBeforeUnmount } from "vue";
 import { cadastrarFoto } from "@/services/foto.service";
-import { toast } from "vue3-toastify";
+import { useApiError } from "@/composables/useApiError";
+import { useNotify } from "@/composables/useNotify";
+import { fotoCriada } from "@/composables/useMidiaEventos";
+import { formatarTamanho, comprimirImagem } from "@/composables/useArquivos";
+import TmFormDialog from "@/components/ui/TmFormDialog.vue";
+import TmDropzone from "@/components/ui/TmDropzone.vue";
 
-const props = defineProps({
-  modelValue: Boolean
-});
+// Tipo de imagem "Galeria" no backend (valor fixo da API atual).
+const TIPO_IMAGEM_GALERIA = 3;
+const LIMITE_FOTO_MB = 4;
 
+const props = defineProps({ modelValue: Boolean });
 const emit = defineEmits(["update:modelValue", "sucesso"]);
 
 const dialog = computed({
   get: () => props.modelValue,
-  set: (val) => emit("update:modelValue", val)
+  set: (val) => emit("update:modelValue", val),
 });
+
+const { tratar, focarPrimeiroInvalido } = useApiError();
+const notify = useNotify();
 
 const titulo = ref("");
 const descricao = ref("");
-const tipoImagemId = ref(3);
 const foto = ref(null);
-const fotoPreview = ref(null);
+const preview = ref(null);
 const dataFoto = ref("");
-
 const loading = ref(false);
-const errors = ref({});
+const progresso = ref(0);
+const erros = ref({});
+const hoje = new Date().toISOString().slice(0, 10);
+let controller = null;
 
-function onFoto(e) {
-  foto.value = e.target.files[0];
+const sujo = computed(() => !!(titulo.value || descricao.value || foto.value || dataFoto.value));
 
-  if (foto.value) {
-    fotoPreview.value = URL.createObjectURL(foto.value);
-  }
+function escolher([arquivo]) {
+  removerFoto();
+  foto.value = arquivo;
+  preview.value = URL.createObjectURL(arquivo);
+  erros.value = {};
+}
+
+function removerFoto() {
+  if (preview.value) URL.revokeObjectURL(preview.value);
+  preview.value = null;
+  foto.value = null;
+}
+
+function cancelar() {
+  controller?.abort();
 }
 
 async function salvar() {
-  loading.value = true;
-  errors.value = {};
+  erros.value = {};
+  if (!foto.value) {
+    erros.value = { imagem: "Selecione uma foto." };
+    return;
+  }
 
+  loading.value = true;
+  // Reduz sempre que passar do limite do servidor ou não for JPEG/PNG.
+  const arquivo = await comprimirImagem(foto.value, { limiarMb: 0, max: 2048, qualidadeInicial: 0.85, alvoMb: LIMITE_FOTO_MB });
+  if (arquivo.size > LIMITE_FOTO_MB * 1024 * 1024 || !["image/jpeg", "image/png"].includes(arquivo.type)) {
+    erros.value = { imagem: `A foto continua com ${formatarTamanho(arquivo.size)} depois de reduzida. O limite é ${LIMITE_FOTO_MB} MB; escolha outra imagem.` };
+    loading.value = false;
+    return;
+  }
   const form = new FormData();
   form.append("titulo", titulo.value);
   form.append("descricao", descricao.value);
-  form.append("tipo_imagem_id", tipoImagemId.value);
-  form.append("imagem", foto.value);
+  form.append("tipo_imagem_id", TIPO_IMAGEM_GALERIA);
+  form.append("imagem", arquivo);
+  if (dataFoto.value) form.append("criado_em", dataFoto.value + " 00:00:00");
 
-  if (dataFoto.value) {
-    form.append("criado_em", dataFoto.value + " 00:00:00");
-  }
+  progresso.value = 0;
+  controller = new AbortController();
 
   try {
-
-    await cadastrarFoto(form);
-
-    toast.success("Foto cadastrada com sucesso 📸");
-
+    await cadastrarFoto(form, {
+      signal: controller.signal,
+      onUploadProgress: (e) => {
+        if (e.total) progresso.value = Math.round((e.loaded / e.total) * 100);
+      },
+    });
+    notify.sucesso("Foto adicionada.");
+    fotoCriada.value++;
     emit("sucesso");
-
     limpar();
-
-    setTimeout(() => fechar(), 800);
-
+    dialog.value = false;
   } catch (e) {
-
-    if (e.response?.status === 422) {
-
-      errors.value = e.response.data.errors || {};
-
-      const apiErrors = e.response.data.errors;
-
-      const primeiraMensagem =
-        Object.values(apiErrors)[0]?.[0] || "Erro de validação.";
-
-      toast.error(primeiraMensagem);
-
+    if (e?.code === "ERR_CANCELED") {
+      notify.info("Envio cancelado.");
     } else {
-
-      const mensagem =
-        e.response?.data?.message ||
-        "Erro inesperado ao cadastrar foto.";
-
-      toast.error(mensagem);
-
+      const info = tratar(e);
+      erros.value = info.campos;
+      if (Object.keys(info.campos).length) focarPrimeiroInvalido();
     }
-
   } finally {
     loading.value = false;
+    controller = null;
   }
 }
 
 function limpar() {
   titulo.value = "";
   descricao.value = "";
-  tipoImagemId.value = 3;
-  foto.value = null;
-  fotoPreview.value = null;
   dataFoto.value = "";
+  erros.value = {};
+  removerFoto();
 }
 
-function fechar() {
-  dialog.value = false;
-}
+onBeforeUnmount(() => {
+  controller?.abort();
+  removerFoto();
+});
 </script>
 
 <style scoped>
-.card {
+.preview-box {
   position: relative;
-  background: #fbf6e6;
-  padding: 50px;
-  border-radius: 28px;
-  box-shadow: 0 30px 80px rgba(0, 0, 0, .3);
-}
-
-h1 {
   text-align: center;
-  margin-bottom: 30px;
 }
-
-.fechar {
+.preview {
+  max-width: 100%;
+  max-height: 280px;
+  border-radius: var(--tm-radius-md);
+  object-fit: contain;
+}
+.remover {
   position: absolute;
-  top: 20px;
-  right: 20px;
-  cursor: pointer;
+  top: 8px;
+  right: 8px;
+  width: 44px;
+  height: 44px;
 }
-
-/* FOTO QUADRADA */
-.foto-container {
+.arquivo {
+  margin: var(--tm-space-2) 0 0;
+  font-size: var(--tm-fs-sm);
+  color: var(--tm-ink-muted);
+}
+.progresso {
   display: flex;
-  justify-content: center;
-  margin-bottom: 30px;
-}
-
-.foto-upload input {
-  display: none;
-}
-
-.foto-placeholder,
-.foto-preview {
-  width: 180px;
-  height: 180px;
-  border-radius: 16px;
-  /* 🔥 agora quadrado arredondado */
-  background: rgba(199, 164, 58, .15);
-  border: 3px dashed #c7a43a;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.foto-preview {
-  object-fit: cover;
-  border: 3px solid #c7a43a;
-}
-
-.field {
-  margin-bottom: 20px;
-}
-
-input,
-textarea,
-select {
-  width: 100%;
-  padding: 12px 14px;
-  border-radius: 12px;
-  border: 1px solid #ccc;
-}
-
-.botao-container {
-  margin-top: 30px;
-  text-align: center;
-}
-
-button {
-  padding: 14px 46px;
-  border-radius: 18px;
-  background: #c7a43a;
-  color: #fff;
-  font-weight: 700;
-  border: none;
-  cursor: pointer;
-  transition: all .2s ease;
-}
-
-button:hover {
-  background: #b89630;
-  transform: translateY(-2px);
-}
-
-button:disabled {
-  opacity: .7;
-  cursor: not-allowed;
-}
-
-:deep(.v-overlay__content) {
-  border-radius: 32px !important;
-  overflow: hidden;
-}
-
-.card {
-  position: relative;
-  background: #fbf6e6;
-  padding: 50px;
-  border-radius: 32px;
-  /* mais arredondado */
-  box-shadow: 0 30px 80px rgba(0, 0, 0, .3);
-}
-
-.sucesso-msg {
-  background: rgba(46, 204, 113, .2);
-  border: 2px solid #2ecc71;
-  padding: 12px;
-  border-radius: 12px;
-  margin-bottom: 20px;
-  font-weight: 600;
-}
-
-.erro {
-  border-color: #c0392b !important;
-  box-shadow: 0 0 0 2px rgba(192, 57, 43, .25);
+  flex-direction: column;
+  gap: var(--tm-space-2);
+  font-size: var(--tm-fs-sm);
 }
 </style>
