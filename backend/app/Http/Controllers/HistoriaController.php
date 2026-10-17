@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Http\Requests\HistoriaPorLimiteRequest;
 use App\Services\HistoriaService;
 use Exception;
+use App\Http\Requests\HistoriaResumoIndexRequest;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 use App\Http\Requests\HistoriaStoreRequest;
@@ -96,7 +98,7 @@ class HistoriaController extends Controller
     public function show(string $uuid)
     {
         try {
-            $historia = $this->historiaService->buscarCompletaPorUuid($uuid);
+            $historia = $this->historiaService->buscarCompletaPorUuid($uuid, auth()->user()->id);
 
             return response()->json(
                 new HistoriaShowResource($historia)
@@ -106,53 +108,74 @@ class HistoriaController extends Controller
         }
     }
 
-    public function listarResumo()
+    public function listarResumo(HistoriaResumoIndexRequest $request)
     {
         try {
-            $historias = $this->historiaService->listarResumo();
+            $filtros = $request->only(['q', 'tipo', 'usuario']);
+
+            // Sem page/per_page: lista completa (formato original). Com eles: paginado com meta.
+            $perPage = ($request->has('page') || $request->has('per_page'))
+                ? (int) $request->input('per_page', 15)
+                : null;
+
+            $historias = $this->historiaService->listarResumo($filtros, $perPage);
+
+            if ($perPage) {
+                return HistoriaResumoResource::collection($historias);
+            }
 
             return response()->json(
                 HistoriaResumoResource::collection($historias)
             );
         } catch (Exception $e) {
             return response()->json(
-                'Erro ao listar resumos das histórias'. $e->getMessage(),
+                'Erro ao listar resumos das histórias',
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
         }
     }
 
     public function update(string $uuid, HistoriaUpdateRequest $request)
-{
-    try {
-        $dto = new HistoriaUpdateDTO($request->validated());
+    {
+        $historia = $this->historiaService->buscarPorUuid($uuid);
 
-        $historia = $this->historiaService->atualizarHistoria($uuid, $dto);
+        if (Gate::denies('update', $historia)) {
+            return response()->json(['message' => 'Acesso não autorizado.'], Response::HTTP_FORBIDDEN);
+        }
 
-        return response()->json(
-            new HistoriaResumoResource($historia)
-        );
-    } catch (Exception $e) {
-        return response()->json(
-            'Erro ao atualizar história',
-            Response::HTTP_INTERNAL_SERVER_ERROR
-        );
+        try {
+            $dto = new HistoriaUpdateDTO($request->validated());
+
+            $historia = $this->historiaService->atualizarHistoria($uuid, $dto);
+
+            return response()->json(
+                new HistoriaResumoResource($historia)
+            );
+        } catch (Exception $e) {
+            return response()->json(
+                'Erro ao atualizar história',
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
     }
-}
 
-public function destroy(string $uuid)
-{
-    try {
-        $this->historiaService->removerHistoria($uuid);
+    public function destroy(string $uuid)
+    {
+        $historia = $this->historiaService->buscarPorUuid($uuid);
 
-        return response()->json(null, Response::HTTP_NO_CONTENT);
-    } catch (Exception $e) {
-        return response()->json(
-            'Erro ao remover história',
-            Response::HTTP_INTERNAL_SERVER_ERROR
-        );
+        if (Gate::denies('delete', $historia)) {
+            return response()->json(['message' => 'Acesso não autorizado.'], Response::HTTP_FORBIDDEN);
+        }
+
+        try {
+            $this->historiaService->removerHistoria($uuid);
+
+            return response()->json(null, Response::HTTP_NO_CONTENT);
+        } catch (Exception $e) {
+            return response()->json(
+                'Erro ao remover história',
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
     }
-}
-
-
 }

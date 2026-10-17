@@ -84,4 +84,24 @@ class Historia extends Model
             UsuarioHistoriaMapping::USUARIO_ID
         )->withTimestamps()->withTrashed();
     }
+
+    public function lembrancas()
+    {
+        return $this->hasMany(Lembranca::class, 'historia_id', HistoriaMapping::ID);
+    }
+
+    public function favoritos()
+    {
+        return $this->hasMany(Favorito::class, 'historia_id', HistoriaMapping::ID);
+    }
+
+    public function favoritadoPor()
+    {
+        return $this->belongsToMany(
+            Usuario::class,
+            'favoritos',
+            'historia_id',
+            'usuario_id'
+        )->withTimestamps();
+    }
 }

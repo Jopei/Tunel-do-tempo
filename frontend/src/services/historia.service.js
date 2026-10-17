@@ -17,3 +17,9 @@ export async function atualizarHistoria(uuid, payload) {
 export async function deletarHistoria(uuid) {
   await api.delete(`/historias/${uuid}`);
 }
+
+/** Público (sem login): últimas histórias com título e descrição. */
+export async function buscarHistoriasRecentes(limite = 3) {
+  const response = await api.get("/public/historias/recentes", { params: { limite } });
+  return response.data.data ?? response.data;
+}

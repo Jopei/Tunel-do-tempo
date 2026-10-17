@@ -22,6 +22,15 @@ class Notificacao extends Model
         NotificacaoMapping::USUARIO_ID,
     ];
 
+    public function autor()
+    {
+        return $this->belongsTo(
+            Usuario::class,
+            NotificacaoMapping::USUARIO_ID,
+            'id'
+        );
+    }
+
     public function usuarios()
     {
         return $this->belongsToMany(

@@ -16,6 +16,9 @@ class VideoResource extends JsonResource
             'thumbnail' => $this->thumbnail
                 ? asset('storage/' . $this->thumbnail)
                 : null,
+            'poster_url' => $this->thumbnail
+                ? asset('storage/' . $this->thumbnail)
+                : null,
         ];
     }
 }

@@ -12,6 +12,7 @@ use App\Http\Requests\Usuario\AtualizarUsuarioRequest;
 use App\Http\Resources\UsuarioGetResource;
 use App\Http\Resources\UsuarioListResource;
 use App\Http\Resources\UsuarioResource;
+use App\Http\Resources\UsuarioAuthResource;
 use Illuminate\Http\JsonResponse;
 use Throwable;
 
@@ -37,6 +38,13 @@ class UsuarioController extends Controller
                 'message' => $e->getMessage()
             ], 422);
         }
+    }
+
+    public function me(): JsonResponse
+    {
+        $usuario = auth()->user()->load(['tipoUsuario', 'fotos.tipo']);
+
+        return response()->json(new UsuarioAuthResource($usuario));
     }
 
     public function index(): JsonResponse

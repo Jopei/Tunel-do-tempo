@@ -5,6 +5,8 @@ namespace App\Repositories;
 use App\Models\Video;
 use App\Mapping\VideoMapping;
 use Illuminate\Support\Str;
+use App\DTO\VideoIndexDTO;
+use App\Support\Sanitizador;
 
 class VideoRepository
 {
@@ -50,10 +52,30 @@ class VideoRepository
         $video->delete();
     }
 
-    public function paginar(int $perPage)
+    public function paginar(VideoIndexDTO $dto)
     {
-        return Video::query()
-            ->latest()
-            ->paginate($perPage);
+        $query = Video::query();
+
+        if ($dto->q) {
+            $like = Sanitizador::like($dto->q);
+            $query->where(fn ($q) => $q->where(VideoMapping::TITULO, 'like', $like)
+                ->orWhere(VideoMapping::DESCRICAO, 'like', $like));
+        }
+
+        if ($dto->ano) {
+            $query->whereYear(VideoMapping::CREATED_AT, $dto->ano);
+        }
+
+        if ($dto->usuarioUuid) {
+            $query->whereHas('usuarios', fn ($q) => $q->where('usuarios.uuid', $dto->usuarioUuid));
+        }
+
+        match ($dto->ordem) {
+            'antigas' => $query->orderBy(VideoMapping::CREATED_AT)->orderBy('id'),
+            'titulo' => $query->orderBy(VideoMapping::TITULO)->orderByDesc('id'),
+            default => $query->orderByDesc(VideoMapping::CREATED_AT)->orderByDesc('id'),
+        };
+
+        return $query->paginate($dto->perPage, ['*'], 'page', $dto->page);
     }
 }

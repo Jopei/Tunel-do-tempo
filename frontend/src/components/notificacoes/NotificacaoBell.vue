@@ -1,172 +1,175 @@
 <template>
-  <div class="bell-wrapper" ref="bellRef">
-
-    <div class="icon" @click.stop="toggle">
-      <v-icon size="26" class="bell-icon">mdi-bell</v-icon>
-
-      <span v-if="temNaoLidas" class="badge"></span>
-    </div>
-
-    <div v-if="aberto" class="dropdown">
-
-      <div class="header">
-        Notificações
-      </div>
-
-      <div v-if="loading" class="loading">
-        Carregando...
-      </div>
-
-      <div v-else-if="!notificacoes.length" class="empty">
-        Nenhuma notificação nova.
-      </div>
-
-      <div
-        v-for="n in notificacoes"
-        :key="n.id"
-        class="item"
-        @click="abrir(n)"
+  <v-menu v-model="aberto" :close-on-content-click="false" location="bottom end" min-width="320" max-width="380">
+    <template #activator="{ props }">
+      <v-btn
+        v-bind="props"
+        icon
+        variant="text"
+        class="bell-btn"
+        :aria-label="rotuloSino"
+        :aria-expanded="aberto"
       >
-        <strong>{{ n.titulo }}</strong>
-        <small>{{ n.tema }}</small>
+        <v-badge v-if="naoLidas" :content="contagem" color="error" floating>
+          <v-icon>mdi-bell-outline</v-icon>
+        </v-badge>
+        <v-icon v-else>mdi-bell-outline</v-icon>
+      </v-btn>
+    </template>
+
+    <v-card role="dialog" aria-label="Notificações" class="painel">
+      <v-card-title class="text-subtitle-1 font-weight-bold">Notificações</v-card-title>
+
+      <div v-if="loading" class="pa-4" aria-busy="true">
+        <v-skeleton-loader type="list-item-two-line@3" />
       </div>
 
-      <div
-        v-if="notificacoes.length"
-        class="marcar"
-        @click.stop="marcarTodas"
-      >
-        Marcar todas como lidas
+      <div v-else-if="erro" class="pa-4 text-center">
+        <p class="mb-3">Não foi possível carregar as notificações.</p>
+        <v-btn size="small" variant="tonal" @click="carregar()">Tentar novamente</v-btn>
       </div>
 
-    </div>
+      <div v-else-if="!notificacoes.length" class="pa-6 text-center text-medium-emphasis">
+        <v-icon size="32" class="mb-2" aria-hidden="true">mdi-bell-check-outline</v-icon>
+        <p>Tudo em dia por aqui.</p>
+      </div>
 
-  </div>
+      <v-list v-else lines="two" density="comfortable" class="lista">
+        <v-list-item
+          v-for="n in notificacoes"
+          :key="n.id"
+          :title="n.titulo"
+          @click="abrir(n)"
+        >
+          <template #subtitle>
+            <v-chip v-if="n.tema" size="x-small" label class="mr-2">{{ n.tema }}</v-chip>
+            <span v-if="n.created_at">{{ dataRelativa(n.created_at) }}</span>
+          </template>
+        </v-list-item>
+      </v-list>
+
+      <v-divider />
+      <v-card-actions>
+        <v-btn v-if="notificacoes.length" variant="text" size="small" color="primary-text" @click="marcarTodas">
+          Marcar todas como lidas
+        </v-btn>
+        <v-spacer />
+        <v-btn to="/notificacoes/minhas" variant="text" size="small" color="primary-text" @click="aberto = false">
+          Ver todas
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-menu>
+  <span class="sr-only" aria-live="polite">{{ anuncio }}</span>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed } from "vue";
-import { listarNotificacoes, marcarTodasLidas, marcarLida } from "@/services/notificacao.service";
+import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
+import { useRouter } from "vue-router";
+import {
+  listarNotificacoes,
+  marcarTodasLidas,
+  marcarLida,
+  contagemNotificacoes,
+} from "@/services/notificacao.service";
+import { dataRelativa } from "@/composables/useFormat";
+
+const router = useRouter();
 
 const notificacoes = ref([]);
 const loading = ref(false);
+const erro = ref(false);
 const aberto = ref(false);
+const anuncio = ref("");
+let timer = null;
 
-const temNaoLidas = computed(() => notificacoes.value.length > 0);
-const bellRef = ref(null);
+const naoLidas = ref(0);
+const contagem = computed(() => (naoLidas.value > 9 ? "9+" : naoLidas.value));
+const rotuloSino = computed(() => {
+  const n = naoLidas.value;
+  return n ? `Notificações, ${n} não lida${n > 1 ? "s" : ""}` : "Notificações";
+});
 
-function handleClickOutside(event) {
-  if (bellRef.value && !bellRef.value.contains(event.target)) {
-    aberto.value = false;
+async function carregar(silencioso = false) {
+  if (!silencioso) loading.value = true;
+  erro.value = false;
+  try {
+    const dados = await listarNotificacoes();
+    const lista = Array.isArray(dados) ? dados : (dados?.data ?? []);
+    notificacoes.value = lista;
+    naoLidas.value = lista.length;
+  } catch {
+    if (!silencioso) erro.value = true;
+  } finally {
+    loading.value = false;
   }
 }
 
-
-function toggle() {
-  aberto.value = !aberto.value;
-}
-
-async function carregar() {
-  loading.value = true;
-  notificacoes.value = await listarNotificacoes();
-  loading.value = false;
+// Polling barato: só o número. Se o endpoint não existir, cai para a lista completa.
+async function atualizarContagem() {
+  try {
+    const { nao_lidas } = await contagemNotificacoes();
+    const n = Number(nao_lidas) || 0;
+    if (n > naoLidas.value) anuncio.value = "Você tem novas notificações.";
+    naoLidas.value = n;
+  } catch (e) {
+    if (e.response?.status === 404) await carregar(true);
+  }
 }
 
 async function marcarTodas() {
-  await marcarTodasLidas();
-  notificacoes.value = [];
-}
-
-async function abrir(n) {
-  await marcarLida(n.id);
-  notificacoes.value = notificacoes.value.filter(i => i.id !== n.id);
-
-  if (n.link) {
-    window.location.href = n.link;
+  try {
+    await marcarTodasLidas();
+    notificacoes.value = [];
+    naoLidas.value = 0;
+  } catch {
+    erro.value = true;
   }
 }
 
+async function abrir(n) {
+  try {
+    await marcarLida(n.id);
+    notificacoes.value = notificacoes.value.filter((i) => i.id !== n.id);
+    naoLidas.value = Math.max(0, naoLidas.value - 1);
+  } catch {
+    /* segue para o link mesmo assim */
+  }
+  aberto.value = false;
+
+  if (!n.link) return;
+  if (/^https?:\/\//i.test(n.link)) {
+    window.open(n.link, "_blank", "noopener,noreferrer");
+  } else {
+    router.push(n.link.startsWith("/") ? n.link : "/" + n.link);
+  }
+}
+
+watch(aberto, (v) => v && carregar());
+
+function aoMudarVisibilidade() {
+  if (document.visibilityState === "visible") atualizarContagem();
+}
+
 onMounted(() => {
-  carregar();
-  document.addEventListener("click", handleClickOutside);
+  atualizarContagem();
+  timer = setInterval(() => {
+    if (document.visibilityState === "visible") atualizarContagem();
+  }, 60000);
+  document.addEventListener("visibilitychange", aoMudarVisibilidade);
 });
 
 onBeforeUnmount(() => {
-  document.removeEventListener("click", handleClickOutside);
+  clearInterval(timer);
+  document.removeEventListener("visibilitychange", aoMudarVisibilidade);
 });
 </script>
 
 <style scoped>
-.bell-wrapper {
-  position: relative;
-  cursor: pointer;
-  margin-right: 14px;
-}
-
-.icon {
-  position: relative;
-}
-
-.bell-wrapper:hover .bell-icon {
-  transform: scale(1.1);
-  transition: .2s ease;
-}
-
-.badge {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  width: 10px;
-  height: 10px;
-  background: #c7a43a;
-  border-radius: 50%;
-  box-shadow: 0 0 0 2px #fff;
-}
-
-.dropdown {
-  position: absolute;
-  top: 40px;
-  right: 0;
-  width: 320px;
-  background: #fbf6e6;
-  border-radius: 18px;
-  padding: 14px 0;
-  box-shadow: 0 20px 60px rgba(0,0,0,.25);
-  max-height: 420px;
+.lista {
+  max-height: 340px;
   overflow-y: auto;
-  z-index: 999;
 }
-
-.header {
-  padding: 12px 18px;
-  font-weight: 700;
-  border-bottom: 1px solid rgba(0,0,0,.08);
-}
-
-.item {
-  padding: 12px 18px;
-  cursor: pointer;
-  transition: .2s ease;
-}
-
-.item:hover {
-  background: rgba(199,164,58,.18);
-}
-
-.empty {
-  padding: 20px;
-  text-align: center;
-  color: #777;
-}
-
-.marcar {
-  padding: 12px 18px;
-  text-align: center;
-  font-weight: 600;
-  border-top: 1px solid rgba(0,0,0,.08);
-}
-
-.bell-icon {
-  color: #8b6b1f; /* dourado do site */
+.painel {
+  background: rgb(var(--v-theme-surface));
 }
 </style>

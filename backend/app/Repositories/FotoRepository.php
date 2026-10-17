@@ -4,6 +4,8 @@ namespace App\Repositories;
 
 use App\Models\Foto;
 use Illuminate\Support\Str;
+use App\DTO\FotoIndexDTO;
+use App\Support\Sanitizador;
 use App\Mapping\FotoMapping;
 
 class FotoRepository
@@ -28,12 +30,32 @@ class FotoRepository
         return Foto::where(FotoMapping::UUID, $uuid)->firstOrFail();
     }
 
-    public function paginar(int $perPage)
+    public function paginar(FotoIndexDTO $dto)
     {
-        return Foto::query()
-            ->where(FotoMapping::TIPO_IMAGEM_ID, '!=', 1)
-            ->latest()
-            ->paginate($perPage);
+        $query = Foto::query()
+            ->where(FotoMapping::TIPO_IMAGEM_ID, '!=', 1);
+
+        if ($dto->q) {
+            $like = Sanitizador::like($dto->q);
+            $query->where(fn ($q) => $q->where(FotoMapping::TITULO, 'like', $like)
+                ->orWhere(FotoMapping::DESCRICAO, 'like', $like));
+        }
+
+        if ($dto->ano) {
+            $query->whereYear(FotoMapping::CREATED_AT, $dto->ano);
+        }
+
+        if ($dto->usuarioUuid) {
+            $query->whereHas('usuarios', fn ($q) => $q->where('usuarios.uuid', $dto->usuarioUuid));
+        }
+
+        match ($dto->ordem) {
+            'antigas' => $query->orderBy(FotoMapping::CREATED_AT)->orderBy('id'),
+            'titulo' => $query->orderBy(FotoMapping::TITULO)->orderByDesc('id'),
+            default => $query->orderByDesc(FotoMapping::CREATED_AT)->orderByDesc('id'),
+        };
+
+        return $query->paginate($dto->perPage, ['*'], 'page', $dto->page);
     }
 
     public function atualizar(Foto $foto, array $dados): Foto

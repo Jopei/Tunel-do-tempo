@@ -17,7 +17,11 @@ class NotificacaoStoreRequest extends FormRequest
             'titulo' => 'required|string|max:255',
             'descricao' => 'nullable|string',
             'tema' => 'nullable|string|max:255',
-            'link' => 'nullable|string|max:255',
+            'link' => [
+                'nullable', 'string', 'max:255',
+                // Rota interna ("/x", nunca "//x") ou URL http/https
+                'regex:#^(/(?!/)[^\s]*|https?://[^\s]+)$#i',
+            ],
         ];
     }
 
@@ -28,6 +32,7 @@ class NotificacaoStoreRequest extends FormRequest
             'titulo.max' => 'O título pode ter no máximo 255 caracteres.',
             'descricao.string' => 'A descrição deve ser um texto válido.',
             'tema.max' => 'O tema pode ter no máximo 255 caracteres.',
+            'link.regex' => 'O link deve ser uma rota interna (/caminho) ou uma URL http/https.',
             'link.max' => 'O link pode ter no máximo 255 caracteres.',
         ];
     }

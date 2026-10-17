@@ -1,171 +1,145 @@
 <template>
-  <section class="homenagem-page">
-    <!-- PARTÍCULAS -->
-    <div id="particles-js"></div>
+  <section class="homenagem-page tm-immersive">
+    <div ref="particulasRef" id="particles-js" aria-hidden="true"></div>
 
-    <UserMenu/>
-
-    <!-- CONTEÚDO -->
     <div class="conteudo">
-      <div class="bloco-texto">
-        <div class="frase">
-          <p class="linha">
-            <span class="letra">I</span>
-            <span class="texto">niciou sua jornada,</span>
-          </p>
+      <h1 class="sr-only">Aquele que sonhou</h1>
 
-          <p class="linha">
-            <span class="letra">T</span>
-            <span class="texto">eve amigos,</span>
-          </p>
+      <blockquote class="frase">
+        <p v-for="(l, i) in linhas" :key="l.letra" class="linha reveal" :style="{ '--delay': `${i * 0.35}s` }">
+          <span class="sr-only">{{ l.letra }}{{ l.resto }}</span>
+          <span aria-hidden="true" class="visual">
+            <span class="letra">{{ l.letra }}</span>
+            <span class="texto">{{ l.resto }}</span>
+          </span>
+        </p>
+      </blockquote>
 
-          <p class="linha">
-            <span class="letra">A</span>
-            <span class="texto">creditou nos seus sonhos,</span>
-          </p>
-
-          <p class="linha">
-            <span class="letra">L</span>
-            <span class="texto">utou durante sua vida,</span>
-          </p>
-
-          <p class="linha">
-            <span class="letra">O</span>
-            <span class="texto">chamaram: aquele que sonhou.</span>
-          </p>
-        </div>
+      <div class="lembrancas-card">
+        <LembrancasSecao v-if="auth.logado" />
+        <p v-else class="entre">
+          <router-link :to="{ name: 'login', query: { redirect: '/aquele-que-sonhou' } }">Entre</router-link>
+          para deixar uma lembrança.
+        </p>
       </div>
+
+      <v-btn to="/a-rua" variant="flat" color="surface" prepend-icon="mdi-arrow-left" class="voltar">
+        Voltar à rua
+      </v-btn>
     </div>
 
-    <!-- BOTÃO PLAY / PAUSE -->
-    <button class="audio-control" @click="toggleAudio">
-      <span v-if="!tocando">▶</span>
-      <span v-else>⏸</span>
+    <button
+      type="button"
+      class="audio-control"
+      :aria-pressed="tocando"
+      :aria-label="tocando ? 'Pausar música' : 'Tocar música'"
+      @click="alternarAudio"
+    >
+      <v-icon aria-hidden="true">{{ tocando ? "mdi-pause" : "mdi-play" }}</v-icon>
+      <span class="rotulo">{{ tocando ? "Pausar música" : "Tocar música" }}</span>
     </button>
   </section>
 </template>
+
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from "vue";
 import { useAuthStore } from "@/stores/auth";
-import gsap from "gsap";
-import UserMenu from "@/components/layout/UserMenu.vue";
+import LembrancasSecao from "@/components/ui/LembrancasSecao.vue";
+import { finalizarTransicao } from "@/composables/useTransicao";
+import { prefereMenosMovimento } from "@/composables/useTema";
 
-const authStore = useAuthStore();
+const linhas = [
+  { letra: "I", resto: "niciou sua jornada," },
+  { letra: "T", resto: "eve amigos," },
+  { letra: "A", resto: "creditou nos seus sonhos," },
+  { letra: "L", resto: "utou durante sua vida," },
+  { letra: "O", resto: "chamaram: aquele que sonhou." },
+];
+
+const auth = useAuthStore();
 const tocando = ref(false);
+const particulasRef = ref(null);
 let audio = null;
+let particulasAtivas = false;
 
-/* 🔊 CONTROLE DE ÁUDIO */
-function toggleAudio() {
-  if (!audio) return;
-
+// Sem autoplay: a música só começa por um clique explícito.
+function alternarAudio() {
+  if (!audio) {
+    audio = new Audio();
+    audio.preload = "none";
+    audio.src = "/sons/italoSong.mp3";
+    audio.loop = true;
+    audio.volume = 0.3;
+  }
   if (tocando.value) {
     audio.pause();
     tocando.value = false;
-  } else {
-    audio.play()
-      .then(() => {
-        tocando.value = true;
-      })
-      .catch(() => {
-        console.warn("Autoplay bloqueado pelo navegador");
-      });
+    return;
+  }
+  audio
+    .play()
+    .then(() => (tocando.value = true))
+    .catch(() => (tocando.value = false));
+}
+
+function aoMudarVisibilidade() {
+  if (document.visibilityState === "hidden" && tocando.value) {
+    audio?.pause();
+    tocando.value = false;
   }
 }
 
-/* 🌌 CARREGA PARTICLES.JS */
-function carregarParticles() {
-  return new Promise((resolve) => {
-    if (window.particlesJS) {
-      resolve();
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = "https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js";
-    script.onload = resolve;
-    document.body.appendChild(script);
-  });
-}
-
-onMounted(async () => {
-  const overlay = document.getElementById("transition-overlay");
-
-  if (overlay) {
-    gsap.to(overlay, {
-      opacity: 0,
-      duration: 1.2,
-      ease: "power2.out",
-      onComplete: () => {
-        overlay.style.display = "none";
-        overlay.style.opacity = 1;
-      },
-    });
-  }
-
-  /* áudio */
-  audio = new Audio("/sons/italoSong.mp3");
-  audio.loop = true;
-  audio.volume = 0.3;
-
-  audio.play()
-    .then(() => {
-      tocando.value = true;
-    })
-    .catch(() => {
-      tocando.value = false;
-    });
-
-  /* particles */
-  await carregarParticles();
-
+async function iniciarParticulas() {
+  if (prefereMenosMovimento()) return;
+  await import("particles.js");
+  if (!window.particlesJS || !particulasRef.value) return;
+  const pequena = window.matchMedia("(max-width: 768px)").matches;
   window.particlesJS("particles-js", {
     particles: {
-      number: { value: 50 },
+      number: { value: pequena ? 30 : 50 },
       color: { value: "#000000" },
       shape: { type: "circle" },
       opacity: { value: 1, random: true },
       size: { value: 5, random: true },
       line_linked: { enable: false },
-      move: {
-        enable: true,
-        speed: 0.6,
-        random: true,
-        out_mode: "out",
-      },
+      move: { enable: true, speed: 0.6, random: true, out_mode: "out" },
     },
-    interactivity: {
-      events: {
-        onhover: { enable: false },
-        onclick: { enable: false },
-      },
-    },
+    interactivity: { events: { onhover: { enable: false }, onclick: { enable: false } } },
     retina_detect: true,
   });
+  particulasAtivas = true;
+}
 
-  /* animação de texto */
-  const linhas = document.querySelectorAll(".linha");
-  linhas.forEach((linha, index) => {
-    setTimeout(() => {
-      linha.classList.add("ativa");
-    }, index * 350);
-  });
+onMounted(() => {
+  finalizarTransicao();
+  document.addEventListener("visibilitychange", aoMudarVisibilidade);
+  iniciarParticulas();
 });
 
 onBeforeUnmount(() => {
+  document.removeEventListener("visibilitychange", aoMudarVisibilidade);
   if (audio) {
     audio.pause();
-    audio.currentTime = 0;
+    audio.src = "";
     audio = null;
+  }
+  if (particulasAtivas && Array.isArray(window.pJSDom) && window.pJSDom.length) {
+    try {
+      window.pJSDom[0].pJS.fn.vendors.destroypJS();
+    } catch {
+      /* já destruído */
+    }
+    window.pJSDom = [];
   }
 });
 </script>
+
 <style scoped>
 .homenagem-page {
-  min-height: 100vh;
+  min-height: 100dvh;
   background: url("/backgrounds/italo-bg.svg") center/cover no-repeat;
   position: relative;
   overflow: hidden;
-  animation: pageIn 1.2s ease-out;
 }
 
 #particles-js {
@@ -177,42 +151,36 @@ onBeforeUnmount(() => {
 .conteudo {
   position: relative;
   z-index: 2;
-  height: 100vh;
+  min-height: 100dvh;
   display: flex;
+  flex-direction: column;
   justify-content: center;
-  align-items: flex-start;
-  padding-top: 140px;
-}
-
-.bloco-texto {
-  text-align: left;
+  align-items: center;
+  gap: var(--tm-space-6);
+  padding: calc(var(--tm-navbar-h) + 48px) var(--tm-space-4) 120px;
 }
 
 .frase {
   max-width: 560px;
+  margin: 0;
 }
 
 .linha {
+  font-size: clamp(1.375rem, 4vw, 2rem);
+  font-weight: 800;
+  margin: 0 0 14px;
+}
+.visual {
   display: flex;
   align-items: baseline;
-  font-size: 32px;
-  font-weight: 800;
-  margin-bottom: 14px;
-  opacity: 0;
-  transform: translateY(24px);
-  transition: opacity 10s ease, transform 0.8s ease;
-}
-
-.linha.ativa {
-  opacity: 1;
-  transform: translateY(0);
 }
 
 .letra {
-  color: #c0392b;
-  font-size: 40px;
+  color: #a93226;
+  font-size: 1.25em;
   font-weight: 900;
   margin-right: 6px;
+  font-family: var(--tm-font-title);
 }
 
 .texto {
@@ -220,67 +188,57 @@ onBeforeUnmount(() => {
   font-weight: 800;
 }
 
+.lembrancas-card {
+  width: 100%;
+  max-width: 560px;
+  background: rgb(var(--v-theme-surface));
+  color: rgb(var(--v-theme-on-surface));
+  border-radius: var(--tm-radius-lg);
+  padding: var(--tm-space-5);
+}
+.lembrancas-card :deep(.lembrancas) {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+.entre {
+  margin: 0;
+  text-align: center;
+}
+.entre a {
+  color: var(--tm-gold-text);
+  font-weight: 700;
+}
+.voltar {
+  color: rgb(var(--v-theme-on-surface)) !important;
+}
+
 .audio-control {
   position: fixed;
-  bottom: 28px;
-  right: 28px;
-  z-index: 9999;
-  width: 54px;
-  height: 54px;
-  border-radius: 50%;
-  background: rgba(0,0,0,.75);
+  bottom: 24px;
+  right: 24px;
+  z-index: 1100;
+  min-height: 48px;
+  padding: 0 20px 0 14px;
+  border-radius: var(--tm-radius-pill);
+  background: rgba(0, 0, 0, 0.82);
   color: #fff;
-  border: none;
-  font-size: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
-  justify-content: center;
-  transition: transform .2s ease, background .2s ease;
+  gap: 8px;
+  transition: background var(--tm-dur-fast) var(--tm-ease);
 }
-
 .audio-control:hover {
-  transform: scale(1.1);
-  background: rgba(0,0,0,.9);
+  background: #000;
 }
 
-/* ===== MOBILE ===== */
-@media (max-width: 768px) {
-  .conteudo {
-    padding-top: 100px;
-    padding-left: 16px;
-    padding-right: 16px;
-  }
-
-  .frase {
-    max-width: 100%;
-  }
-
-  .linha {
-    font-size: 22px;
-  }
-
-  .letra {
-    font-size: 28px;
-  }
-
+@media (max-width: 600px) {
   .audio-control {
-    bottom: 18px;
-    right: 18px;
-    width: 48px;
-    height: 48px;
-    font-size: 20px;
-  }
-}
-
-@keyframes pageIn {
-  from {
-    opacity: 0;
-    transform: scale(1.02);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
+    bottom: 16px;
+    right: 16px;
   }
 }
 </style>

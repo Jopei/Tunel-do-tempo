@@ -6,6 +6,7 @@ use App\DTO\Atualizacoes\AtualizacaoDTO;
 use App\Repositories\Atualizacoes\AtualizacaoRepositoryInterface;
 use App\Models\AtualizacaoRealizada;
 use App\Mapping\AtualizacaoMapping;
+use App\Support\Sanitizador;
 
 class AtualizacaoService
 {
@@ -17,7 +18,7 @@ class AtualizacaoService
     {
         return $this->repository->criar([
             AtualizacaoMapping::TITULO => $dto->titulo,
-            AtualizacaoMapping::CONTEUDO_MARKDOWN => $dto->conteudoMarkdown,
+            AtualizacaoMapping::CONTEUDO_MARKDOWN => Sanitizador::markdown($dto->conteudoMarkdown),
             AtualizacaoMapping::LINK_MUSICA => $dto->linkMusica,
             AtualizacaoMapping::USUARIO_CADASTRADO => $dto->usuarioId,
         ]);
@@ -31,7 +32,7 @@ class AtualizacaoService
 
         return $this->repository->atualizar($atualizacao, [
             AtualizacaoMapping::TITULO => $dto->titulo,
-            AtualizacaoMapping::CONTEUDO_MARKDOWN => $dto->conteudoMarkdown,
+            AtualizacaoMapping::CONTEUDO_MARKDOWN => Sanitizador::markdown($dto->conteudoMarkdown),
             AtualizacaoMapping::LINK_MUSICA => $dto->linkMusica,
         ]);
     }

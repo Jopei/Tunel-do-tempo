@@ -7,6 +7,7 @@ use App\Repositories\NotificacaoRepository;
 use App\Mapping\NotificacaoUsuarioMapping;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use App\Support\Sanitizador;
 
 class NotificacaoService
 {
@@ -20,7 +21,7 @@ class NotificacaoService
         return $this->repository->create([
             'uuid' => Str::uuid(),
             'titulo' => $dto->titulo,
-            'descricao' => $dto->descricao,
+            'descricao' => Sanitizador::html($dto->descricao),
             'tema' => $dto->tema,
             'link' => $dto->link,
             'usuario_id' => $usuarioId,
@@ -30,6 +31,26 @@ class NotificacaoService
     public function listarNaoLidas(int $usuarioId)
     {
         return $this->repository->buscarNaoLidas($usuarioId);
+    }
+
+    public function paginarParaUsuario(int $usuarioId, string $status, int $perPage)
+    {
+        return $this->repository->paginarParaUsuario($usuarioId, $status, $perPage);
+    }
+
+    public function contarNaoLidas(int $usuarioId): int
+    {
+        return $this->repository->contarNaoLidas($usuarioId);
+    }
+
+    public function paginarEnviadas(int $perPage)
+    {
+        return $this->repository->paginarEnviadas($perPage);
+    }
+
+    public function excluir(int $id): void
+    {
+        $this->repository->excluir($id);
     }
 
     public function marcarComoLida(int $usuarioId, int $notificacaoId): void

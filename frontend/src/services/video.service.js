@@ -1,8 +1,9 @@
 import api from "./api";
 
-export async function listarVideos(page = 1) {
+// params opcionais: { q, ano, usuario_uuid, ordem, per_page }
+export async function listarVideos(page = 1, params = {}) {
   const response = await api.get("/videos", {
-    params: { page },
+    params: { page, ...params },
   });
   return response.data;
 }
@@ -15,11 +16,12 @@ export async function atualizarVideo(uuid, payload) {
   await api.put(`/videos/${uuid}`, payload);
 }
 
-export async function cadastrarVideo(payload) {
+export async function cadastrarVideo(payload, config = {}) {
   const response = await api.post("/cadastrar/videos", payload, {
     headers: {
       "Content-Type": "multipart/form-data",
     },
+    ...config,
   });
 
   return response.data;

@@ -14,11 +14,16 @@ class UsuarioGetResource extends JsonResource
             ->where('tipo.nome', TipoImagemEnum::PERFIL->value)
             ->first();
 
+        $logado = $request->user();
+        $veSensivel = $logado && (
+            $logado->id === $this->id
+            || $logado->tipoUsuario?->nome === \App\Enums\TipoUsuarioEnum::MEMBRO_ADM->value
+        );
+
         return [
             'uuid' => $this->uuid,
             'nome' => $this->nome,
-            'email' => $this->email,
-            'telefone' => $this->telefone,
+            ...($veSensivel ? ['email' => $this->email, 'telefone' => $this->telefone] : []),
             'descricao' => $this->descricao,
             'aniversario' => $this->aniversario,
             'tipo_usuario' => [

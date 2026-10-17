@@ -18,7 +18,7 @@ use App\Services\FotoService;
 use DomainException;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
+use App\Http\Requests\FotoIndexRequest;
 use Throwable;
 
 class FotoController extends Controller
@@ -116,11 +116,15 @@ class FotoController extends Controller
         }
     }
 
-    public function index(Request $request)
+    public function index(FotoIndexRequest $request)
     {
         $dto = new FotoIndexDTO(
-            page: $request->page ?? 1,
-            perPage: $request->per_page ?? 15
+            page: (int) $request->input('page', 1),
+            perPage: (int) $request->input('per_page', 15),
+            q: $request->input('q'),
+            ano: $request->filled('ano') ? (int) $request->input('ano') : null,
+            usuarioUuid: $request->input('usuario_uuid'),
+            ordem: $request->input('ordem', 'recentes')
         );
 
         $fotos = $this->fotoIndexAction->executar($dto);
