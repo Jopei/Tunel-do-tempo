@@ -36,7 +36,8 @@ class UsuarioRepository
             ]
         )->pluck(TipoUsuarioMapping::ID);
 
-        return Usuario::whereIn(
+        return Usuario::with(['fotos' => fn ($q) => $q->whereNull('fotos.deleted_at'), 'fotos.tipo'])
+            ->whereIn(
             UsuarioMapping::TIPO_USUARIO_ID,
             $tiposPermitidos
         )
@@ -68,5 +69,27 @@ class UsuarioRepository
     {
         return Usuario::where(UsuarioMapping::UUID, $uuid)
             ->update($dados);
+    }
+
+    /**
+     * Membros (ADM e RUA) com a foto de perfil, para exibicao publica ou busca.
+     */
+    public function listarMembros(?string $termo = null, ?int $limite = null)
+    {
+        $tiposPermitidos = TipoUsuario::whereIn(
+            TipoUsuarioMapping::NOME,
+            [
+                TipoUsuarioEnum::MEMBRO_ADM->value,
+                TipoUsuarioEnum::MEMBRO_RUA->value,
+            ]
+        )->pluck(TipoUsuarioMapping::ID);
+
+        return Usuario::query()
+            ->whereIn(UsuarioMapping::TIPO_USUARIO_ID, $tiposPermitidos)
+            ->when($termo, fn ($q) => $q->where(UsuarioMapping::NOME, 'like', \App\Support\Sanitizador::like($termo)))
+            ->with(['fotos' => fn ($q) => $q->whereNull('fotos.deleted_at'), 'fotos.tipo'])
+            ->orderBy(UsuarioMapping::NOME)
+            ->when($limite, fn ($q) => $q->limit($limite))
+            ->get();
     }
 }

@@ -13,8 +13,6 @@ class IndexFotoAction
 
     public function executar(FotoIndexDTO $dto)
     {
-        return $this->fotoRepository->paginar(
-            $dto->perPage
-        );
+        return $this->fotoRepository->paginar($dto);
     }
 }

@@ -2,7 +2,13 @@
 
 namespace App\Providers;
 
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use App\Models\Historia;
+use App\Policies\HistoriaPolicy;
 use App\Repositories\Atualizacoes\AtualizacaoRepositoryInterface;
 use App\Repositories\Atualizacoes\AtualizacaoRepository;
 
@@ -24,6 +30,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        Gate::policy(Historia::class, HistoriaPolicy::class);
+
+        // Esqueci/redefinir senha: limite por IP e por e-mail
+        RateLimiter::for('senha', function (Request $request) {
+            return [
+                Limit::perMinute(5)->by('ip:' . $request->ip()),
+                Limit::perHour(10)->by('email:' . strtolower((string) $request->input('email'))),
+            ];
+        });
     }
 }

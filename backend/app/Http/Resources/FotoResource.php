@@ -15,6 +15,7 @@ class FotoResource extends JsonResource
             'descricao' => $this->{FotoMapping::DESCRICAO},
             'tipo_imagem_id' => $this->{FotoMapping::TIPO_IMAGEM_ID},
             'url' => route('api.fotos.show', $this->{FotoMapping::UUID}),
+            'thumbnail_url' => null, // miniaturas ainda nao sao geradas (B4)
             'usuario_cadastrou_id' => $this->{FotoMapping::USUARIO_CADASTROU_ID},
             'created_at' => $this->{FotoMapping::CREATED_AT},
         ];

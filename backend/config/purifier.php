@@ -30,6 +30,15 @@ return [
             'AutoFormat.AutoParagraph' => true,
             'AutoFormat.RemoveEmpty'   => true,
         ],
+        'conteudo' => [
+            'HTML.Doctype'             => 'HTML 4.01 Transitional',
+            'HTML.Allowed'             => 'p,br,hr,div,span,b,strong,i,em,u,s,blockquote,h1,h2,h3,h4,h5,h6,ul,ol,li,a[href|title|target],img[src|alt|width|height],*[class]',
+            'Attr.AllowedClasses'      => ['ql-align-center', 'ql-align-right', 'ql-align-justify', 'ql-indent-1', 'ql-indent-2', 'ql-indent-3', 'ql-indent-4', 'ql-indent-5', 'ql-indent-6', 'ql-indent-7', 'ql-indent-8'],
+            'URI.AllowedSchemes'       => ['http' => true, 'https' => true, 'mailto' => true, 'tel' => true],
+            'Attr.AllowedFrameTargets' => ['_blank'],
+            'AutoFormat.AutoParagraph' => false,
+            'AutoFormat.RemoveEmpty'   => false,
+        ],
         'test'    => [
             'Attr.EnableID' => 'true',
         ],

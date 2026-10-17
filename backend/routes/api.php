@@ -10,6 +10,11 @@ use App\Http\Controllers\MusicaController;
 use App\Http\Controllers\NotificacaoController;
 use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\VideoController;
+use App\Http\Controllers\BuscaController;
+use App\Http\Controllers\FavoritoController;
+use App\Http\Controllers\LembrancaController;
+use App\Http\Controllers\PublicoController;
+use App\Http\Controllers\SenhaController;
 
 
 /*
@@ -27,11 +32,18 @@ Route::prefix('fotos')->group(function () {
 });
 Route::get('/videos/{uuid}', [VideoController::class, 'show'])->name('api.videos.show');
 Route::get('/atualizacoes', [AtualizacaoController::class, 'index']);
+Route::get('/public/membros', [PublicoController::class, 'membros'])->name('public.membros');
+Route::get('/public/historias/recentes', [PublicoController::class, 'historiasRecentes'])->name('public.historias.recentes');
 
 
 Route::middleware(['api.key.auth'])->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/logout', [AuthController::class, 'logout']);
+
+    Route::middleware('throttle:senha')->group(function () {
+        Route::post('/esqueci-senha', [SenhaController::class, 'esqueci'])->name('senha.esqueci');
+        Route::post('/redefinir-senha', [SenhaController::class, 'redefinir'])->name('senha.redefinir');
+    });
 
     Route::get('/historias/limite/{limite?}', [HistoriaController::class, 'buscarHistoriasPorLimite'])->name('historias.por.limite');
 
@@ -59,11 +71,32 @@ Route::middleware(['api.key.auth'])->group(function () {
         });
 
         Route::prefix('notificacoes')->group(function () {
-            Route::post('/', [NotificacaoController::class, 'store'])->name('notificacoes.store');
+            Route::post('/', [NotificacaoController::class, 'store'])
+                ->middleware('tipoUsuario:MEMBRO_ADM')
+                ->name('notificacoes.store');
             Route::get('/', [NotificacaoController::class, 'index'])->name('notificacoes.index');
+            Route::get('/contagem', [NotificacaoController::class, 'contagem'])->name('notificacoes.contagem');
+            Route::delete('/{id}', [NotificacaoController::class, 'destroy'])
+                ->middleware('tipoUsuario:MEMBRO_ADM')
+                ->whereNumber('id')
+                ->name('notificacoes.destroy');
             Route::post('/{id}/marcar', [NotificacaoController::class, 'marcar'])->name('notificacoes.marcar');
             Route::post('/marcar-todas', [NotificacaoController::class, 'marcarTodas'])->name('notificacoes.marcar.todas');
         });
+
+        Route::get('/admin/notificacoes', [NotificacaoController::class, 'enviadas'])
+            ->middleware('tipoUsuario:MEMBRO_ADM')
+            ->name('admin.notificacoes.index');
+
+        Route::get('/me', [UsuarioController::class, 'me'])->name('me');
+        Route::get('/me/favoritos', [FavoritoController::class, 'index'])->name('me.favoritos');
+
+        Route::get('/busca', BuscaController::class)->middleware('throttle:60,1')->name('busca');
+
+        Route::get('/homenagem/lembrancas', [LembrancaController::class, 'indexHomenagem'])->name('homenagem.lembrancas.index');
+        Route::post('/homenagem/lembrancas', [LembrancaController::class, 'storeHomenagem'])
+            ->middleware('throttle:20,1')->name('homenagem.lembrancas.store');
+        Route::delete('/lembrancas/{uuid}', [LembrancaController::class, 'destroy'])->name('lembrancas.destroy');
 
         Route::prefix('usuarios')->group(function () {
             Route::get('/', [UsuarioController::class, 'index'])->name('usuarios.index');
@@ -94,6 +127,11 @@ Route::middleware(['api.key.auth'])->group(function () {
             Route::put('/{uuid}', [HistoriaController::class, 'update']);
             Route::delete('/{uuid}', [HistoriaController::class, 'destroy']);
             Route::get('/{uuid}/resumo', [HistoriaController::class, 'resumo']);
+            Route::get('/{uuid}/lembrancas', [LembrancaController::class, 'index'])->name('historias.lembrancas.index');
+            Route::post('/{uuid}/lembrancas', [LembrancaController::class, 'store'])
+                ->middleware('throttle:20,1')->name('historias.lembrancas.store');
+            Route::post('/{uuid}/favorito', [FavoritoController::class, 'store'])->name('historias.favorito.store');
+            Route::delete('/{uuid}/favorito', [FavoritoController::class, 'destroy'])->name('historias.favorito.destroy');
         });
 
         Route::prefix('atualizacoes')->group(function () {

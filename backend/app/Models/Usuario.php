@@ -111,4 +111,24 @@ class Usuario extends Authenticatable
             $this->attributes['senha'] = $value;
         }
     }
+
+    public function lembrancas()
+    {
+        return $this->hasMany(Lembranca::class, 'usuario_id', UsuarioMapping::ID);
+    }
+
+    public function favoritos()
+    {
+        return $this->hasMany(Favorito::class, 'usuario_id', UsuarioMapping::ID);
+    }
+
+    public function historiasFavoritas()
+    {
+        return $this->belongsToMany(
+            Historia::class,
+            'favoritos',
+            'usuario_id',
+            'historia_id'
+        )->withTimestamps();
+    }
 }

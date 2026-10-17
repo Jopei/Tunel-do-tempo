@@ -14,6 +14,9 @@ class UsuarioAuthResource extends JsonResource
             'uuid' => $this->uuid,
             'nome' => $this->nome,
             'email' => $this->email,
+            'telefone' => $this->telefone,
+            'aniversario' => $this->aniversario,
+            'descricao' => $this->descricao,
             'tipo_usuario' => $this->tipoUsuario->nome,
             'foto_perfil' => $this->fotos
                 ->where('tipo.nome', TipoImagemEnum::PERFIL->value)

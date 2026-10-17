@@ -14,7 +14,7 @@ use App\Mapping\VideoMapping;
 use App\Models\Video;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
-use Symfony\Component\HttpFoundation\Request;
+use App\Http\Requests\VideoIndexRequest;
 use Throwable;
 
 class VideoController extends Controller
@@ -69,11 +69,15 @@ class VideoController extends Controller
         );
     }
 
-    public function index(Request $request)
+    public function index(VideoIndexRequest $request)
     {
         $dto = new VideoIndexDTO(
-            page: $request->page ?? 1,
-            perPage: $request->per_page ?? 15
+            page: (int) $request->input('page', 1),
+            perPage: (int) $request->input('per_page', 15),
+            q: $request->input('q'),
+            ano: $request->filled('ano') ? (int) $request->input('ano') : null,
+            usuarioUuid: $request->input('usuario_uuid'),
+            ordem: $request->input('ordem', 'recentes')
         );
 
         $videos = $this->videoIndexAction->executar($dto);

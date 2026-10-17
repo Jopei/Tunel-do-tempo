@@ -18,7 +18,7 @@ use App\Mapping\UsuarioHistoriaMapping;
 use App\Repositories\TipoHistoriaRepository;
 use App\Repositories\UsuarioRepository;
 use Illuminate\Support\Facades\DB;
-use Mews\Purifier\Facades\Purifier;
+use App\Support\Sanitizador;
 
 class HistoriaService
 {
@@ -147,7 +147,7 @@ class HistoriaService
             $historia = $this->historiaRepository->create([
                 HistoriaMapping::TITULO => $dto->titulo,
                 HistoriaMapping::DESCRICAO_CURTA => $dto->descricaoCurta,
-                HistoriaMapping::CONTEUDO => $dto->conteudo,
+                HistoriaMapping::CONTEUDO => Sanitizador::html($dto->conteudo),
                 HistoriaMapping::DATA_HISTORIA => $dto->dataHistoria,
                 HistoriaMapping::TIPO_HISTORIA_ID => $tipoHistoriaId,
             ]);
@@ -193,14 +193,24 @@ class HistoriaService
         return $this->historiaRepository->buscarPorUuidComUsuarios($uuid);
     }
 
-    public function buscarCompletaPorUuid(string $uuid)
+    public function buscarCompletaPorUuid(string $uuid, ?int $usuarioId = null)
     {
-        return $this->historiaRepository->buscarCompletaPorUuid($uuid);
+        return $this->historiaRepository->buscarCompletaPorUuid($uuid, $usuarioId);
     }
 
-    public function listarResumo()
+    public function listarResumo(array $filtros = [], ?int $perPage = null)
     {
-        return $this->historiaRepository->listarResumo();
+        return $this->historiaRepository->listarResumo($filtros, $perPage);
+    }
+
+    public function listarFavoritas(int $usuarioId, int $perPage)
+    {
+        return $this->historiaRepository->favoritasDoUsuario($usuarioId, $perPage);
+    }
+
+    public function buscarPorUuid(string $uuid)
+    {
+        return $this->historiaRepository->buscarPorUuid($uuid);
     }
 
     public function atualizarHistoria(string $uuid, HistoriaUpdateDTO $dto)
@@ -225,7 +235,7 @@ class HistoriaService
                 $historia->usuarios()->sync($ids);
             }
 
-            return $historia->fresh(['usuarios', 'tipo']);
+            return $historia->fresh(['usuarios', 'tipo'])->loadCount(HistoriaRepository::contagensMidia());
         });
     }
 

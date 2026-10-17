@@ -13,6 +13,6 @@ class IndexVideoAction
 
     public function executar(VideoIndexDTO $dto)
     {
-        return $this->videoRepository->paginar($dto->perPage);
+        return $this->videoRepository->paginar($dto);
     }
 }
