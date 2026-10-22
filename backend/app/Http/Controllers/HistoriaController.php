@@ -86,7 +86,7 @@ class HistoriaController extends Controller
     public function resumo(string $uuid)
     {
         try {
-            $historia = $this->historiaService->buscarPorUuidComUsuarios($uuid);
+            $historia = $this->historiaService->buscarPorUuidComUsuarios($uuid, auth()->user()?->id);
             return response()->json(
                 new HistoriaResumoResource($historia)
             );
@@ -111,14 +111,14 @@ class HistoriaController extends Controller
     public function listarResumo(HistoriaResumoIndexRequest $request)
     {
         try {
-            $filtros = $request->only(['q', 'tipo', 'usuario']);
+            $filtros = $request->only(['q', 'tipo', 'usuario', 'ordem']);
 
             // Sem page/per_page: lista completa (formato original). Com eles: paginado com meta.
             $perPage = ($request->has('page') || $request->has('per_page'))
                 ? (int) $request->input('per_page', 15)
                 : null;
 
-            $historias = $this->historiaService->listarResumo($filtros, $perPage);
+            $historias = $this->historiaService->listarResumo($filtros, $perPage, auth()->user()?->id);
 
             if ($perPage) {
                 return HistoriaResumoResource::collection($historias);

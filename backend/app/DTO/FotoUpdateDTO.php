@@ -8,5 +8,7 @@ class FotoUpdateDTO
         public string $uuid,
         public ?string $titulo = null,
         public ?string $descricao = null,
+        public ?string $dataFoto = null,
+        public bool $informouDataFoto = false,
     ) {}
 }

@@ -10,6 +10,10 @@ class FotoIndexDTO
         public ?string $q = null,
         public ?int $ano = null,
         public ?string $usuarioUuid = null,
-        public string $ordem = 'recentes'
+        public string $ordem = 'recentes',
+        public ?string $agrupar = null,
+        public ?string $albumUuid = null,
+        public ?string $de = null,
+        public ?string $ate = null
     ) {}
 }

@@ -21,6 +21,7 @@ class HistoriaResumoIndexRequest extends FormRequest
             'q' => ['nullable', 'string', 'max:100'],
             'tipo' => ['nullable', Rule::in(TipoHistoriaEnum::values())],
             'usuario' => ['nullable', 'uuid'],
+            'ordem' => ['nullable', Rule::in(['asc', 'desc'])],
         ];
     }
 }

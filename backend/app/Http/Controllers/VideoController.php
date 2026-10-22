@@ -15,6 +15,8 @@ use App\Models\Video;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Requests\VideoIndexRequest;
+use App\Repositories\VideoRepository;
+use App\Enums\TipoImagemEnum;
 use Throwable;
 
 class VideoController extends Controller
@@ -33,6 +35,7 @@ class VideoController extends Controller
                 video: $request->file('video'),
                 externalLink: $request->external_link,
                 thumbnail: $request->file('thumbnail'),
+                dataVideo: $request->input('data_video'),
             );
 
             $video = $this->videoService->criar($dto);
@@ -42,6 +45,8 @@ class VideoController extends Controller
                 'uuid' => $video->uuid,
             ], 201);
         } catch (Throwable $e) {
+            report($e);
+
             return response()->json([
                 'message' => $e->getMessage(),
             ], 400);
@@ -77,7 +82,10 @@ class VideoController extends Controller
             q: $request->input('q'),
             ano: $request->filled('ano') ? (int) $request->input('ano') : null,
             usuarioUuid: $request->input('usuario_uuid'),
-            ordem: $request->input('ordem', 'recentes')
+            ordem: $request->input('ordem', 'recentes'),
+            pastaUuid: $request->input('pasta_uuid'),
+            todas: $request->boolean('todas'),
+            semData: $request->boolean('sem_data'),
         );
 
         $videos = $this->videoIndexAction->executar($dto);
@@ -85,12 +93,32 @@ class VideoController extends Controller
         return VideoResource::collection($videos);
     }
 
+    /** @return array<int, array{ano:?int,total:int}> total de videos por ano de data_video (null = sem data), ano desc, null por ultimo. */
+    public function anos(VideoIndexRequest $request, VideoRepository $videos): JsonResponse
+    {
+        return response()->json($videos->anos(
+            $request->input('pasta_uuid'),
+            $request->boolean('todas'),
+            $request->input('q'),
+        ));
+    }
+
+    /** Mesmo item da listagem, em JSON (o show devolve o arquivo/redirect). */
+    public function detalhes(string $uuid)
+    {
+        $video = Video::where(VideoMapping::UUID, $uuid)->with(['pasta:id,uuid', 'cadastradoPor:id,uuid,nome,slug', 'cadastradoPor.fotos' => fn ($q) => $q->whereNull('fotos.deleted_at')->whereHas('tipo', fn ($t) => $t->where('nome', TipoImagemEnum::PERFIL->value)), 'cadastradoPor.fotos.tipo:id,nome'])->firstOrFail();
+
+        return new VideoResource($video);
+    }
+
     public function update(VideoUpdateRequest $request, string $uuid)
     {
         $dto = new VideoUpdateDTO(
             uuid: $uuid,
             titulo: $request->titulo,
-            descricao: $request->descricao
+            descricao: $request->descricao,
+            dataVideo: $request->input('data_video'),
+            informouDataVideo: $request->exists('data_video'),
         );
 
         $this->videoService->editar($dto);

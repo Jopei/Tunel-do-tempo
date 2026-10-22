@@ -16,18 +16,14 @@ class MembroPublicoResource extends JsonResource
         return [
             'uuid' => $this->uuid,
             'nome' => $this->nome,
+            'slug' => $this->slug,
             'foto_url' => self::fotoUrl($this->resource),
         ];
     }
 
-    /** URL da foto de perfil mais recente (requer fotos.tipo carregado) ou null. */
+    /** URL da foto de perfil atual (requer fotos.tipo carregado) ou null. */
     public static function fotoUrl($usuario): ?string
     {
-        $foto = $usuario->fotos
-            ->filter(fn ($f) => $f->tipo?->nome === TipoImagemEnum::PERFIL->value)
-            ->sortByDesc(fn ($f) => $f->pivot?->created_at ?? $f->created_at)
-            ->first();
-
-        return $foto ? route('api.fotos.show', $foto->uuid) : null;
+        return $usuario?->fotoPerfilUrl();
     }
 }

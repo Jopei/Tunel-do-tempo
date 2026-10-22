@@ -15,7 +15,8 @@ class FotoUpdateRequest extends FormRequest
     {
         return [
             'titulo' => ['nullable', 'string', 'max:255'],
-            'descricao' => ['nullable', 'string'],
+            'descricao' => ['nullable', 'string', 'max:2000'],
+            'data_foto' => ['nullable', 'date_format:Y-m-d'],
         ];
     }
 

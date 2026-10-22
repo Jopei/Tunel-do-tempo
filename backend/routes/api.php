@@ -15,6 +15,9 @@ use App\Http\Controllers\FavoritoController;
 use App\Http\Controllers\LembrancaController;
 use App\Http\Controllers\PublicoController;
 use App\Http\Controllers\SenhaController;
+use App\Http\Controllers\AlbumController;
+use App\Http\Controllers\VideoPastaController;
+use App\Http\Controllers\MembroController;
 
 
 /*
@@ -25,12 +28,22 @@ use App\Http\Controllers\SenhaController;
 */
 
 Route::post('/api-keys/gerar', [ApiKeyController::class, 'gerar']);
+// Rotas literais de login antes dos '/{uuid}' publicos (senao 'anos'/'neste-dia' casariam como uuid).
+Route::middleware(['api.key.auth', 'auth:sanctum'])->group(function () {
+    Route::get('/videos/anos', [VideoController::class, 'anos'])->name('api.videos.anos');
+    Route::get('/fotos/neste-dia', [FotoController::class, 'nesteDia'])->name('api.fotos.neste-dia');
+});
 Route::prefix('fotos')->group(function () {
     Route::get('/', [FotoController::class, 'index'])->name('api.fotos.index');
+    Route::get('/linha-do-tempo', [FotoController::class, 'linhaDoTempo'])->name('api.fotos.linha-do-tempo');
+    Route::get('/anos', [FotoController::class, 'anos'])->name('api.fotos.anos');
     Route::get('/{uuid}', [FotoController::class, 'show'])->name('api.fotos.show');
-    Route::get('/{uuid}/details', [FotoController::class, 'details'])->name('api.fotos.details');
 });
 Route::get('/videos/{uuid}', [VideoController::class, 'show'])->name('api.videos.show');
+// Stream de musica via URL assinada temporaria (sem API key: <audio> nao envia headers).
+Route::get('/musicas/{uuid}/stream', [MusicaController::class, 'stream'])
+    ->middleware('signed')
+    ->name('api.musicas.stream');
 Route::get('/atualizacoes', [AtualizacaoController::class, 'index']);
 Route::get('/public/membros', [PublicoController::class, 'membros'])->name('public.membros');
 Route::get('/public/historias/recentes', [PublicoController::class, 'historiasRecentes'])->name('public.historias.recentes');
@@ -66,8 +79,32 @@ Route::middleware(['api.key.auth'])->group(function () {
 
                 Route::post('/', [FotoController::class, 'store'])->name('api.fotos.store');
                 Route::put('/{uuid}', [FotoController::class, 'update'])->name('api.fotos.update');
+                Route::post('/lote-excluir', [FotoController::class, 'loteExcluir'])->name('api.fotos.lote-excluir');
                 Route::delete('/{uuid}', [FotoController::class, 'destroy'])->name('api.fotos.destroy');
             });
+
+            Route::prefix('albuns')->group(function () {
+                Route::post('/', [AlbumController::class, 'store'])->name('api.albuns.store');
+                Route::put('/{uuid}', [AlbumController::class, 'update'])->name('api.albuns.update');
+                Route::delete('/{uuid}', [AlbumController::class, 'destroy'])->name('api.albuns.destroy');
+                Route::post('/{uuid}/fotos', [AlbumController::class, 'adicionarFotos'])->name('api.albuns.fotos.adicionar');
+                Route::delete('/{uuid}/fotos', [AlbumController::class, 'removerFotos'])->name('api.albuns.fotos.remover');
+            });
+
+            Route::prefix('video-pastas')->group(function () {
+                Route::post('/', [VideoPastaController::class, 'store'])->name('api.video-pastas.store');
+                Route::put('/{uuid}', [VideoPastaController::class, 'update'])->name('api.video-pastas.update');
+                Route::delete('/{uuid}', [VideoPastaController::class, 'destroy'])->name('api.video-pastas.destroy');
+            });
+
+            Route::patch('/fotos/{uuid}/usuarios', [FotoController::class, 'syncUsuarios'])->name('api.fotos.usuarios');
+            Route::put('/videos/{uuid}', [VideoController::class, 'update'])->name('api.videos.update');
+            Route::delete('/videos/{uuid}', [VideoController::class, 'destroy'])->name('api.videos.destroy');
+
+            Route::patch('/videos/{uuid}/pasta', [VideoPastaController::class, 'moverVideo'])->name('api.videos.pasta');
+
+            Route::put('/musicas/{uuid}', [MusicaController::class, 'update'])->name('api.musicas.update');
+            Route::delete('/musicas/{uuid}', [MusicaController::class, 'destroy'])->name('api.musicas.destroy');
         });
 
         Route::prefix('notificacoes')->group(function () {
@@ -103,21 +140,28 @@ Route::middleware(['api.key.auth'])->group(function () {
             Route::put('/{uuid}', [UsuarioController::class, 'atualizar'])->name('api.usuarios.update');
             Route::get('/{uuid}', [UsuarioController::class, 'getUsuario'])->name('usuarios.get');
             Route::post('/{uuid}/foto-perfil', [UsuarioController::class, 'atualizarFotoPerfil'])->name('usuarios.foto.perfil.store');
-            Route::post('/foto-perfil', [FotoController::class, 'storeFotoPerfil'])->name('usuarios.foto.perfil.store');
+            Route::post('/foto-perfil', [FotoController::class, 'storeFotoPerfil'])->name('usuarios.foto.perfil.atualizar');
         });
 
-        Route::prefix('fotos')->group(function () {
-            Route::put('/{uuid}', [FotoController::class, 'update'])->name('api.fotos.update');
-            Route::patch('/{uuid}/usuarios', [FotoController::class, 'syncUsuarios']);
-        });
+        Route::get('/fotos/{uuid}/details', [FotoController::class, 'details'])->name('api.fotos.details');
 
         Route::prefix('videos')->group(function () {
             Route::get('/', [VideoController::class, 'index']);
-            Route::put('/{uuid}', [VideoController::class, 'update']);
-            Route::delete('/{uuid}', [VideoController::class, 'destroy']);
+            Route::get('/{uuid}/detalhes', [VideoController::class, 'detalhes'])->name('api.videos.detalhes');
         });
 
+        Route::prefix('albuns')->group(function () {
+            Route::get('/', [AlbumController::class, 'index'])->name('api.albuns.index');
+            Route::get('/{uuid}', [AlbumController::class, 'show'])->name('api.albuns.show');
+        });
+
+        Route::get('/video-pastas', [VideoPastaController::class, 'index'])->name('api.video-pastas.index');
+
+        Route::get('/membros/{slug}', [MembroController::class, 'show'])->name('api.membros.show');
+
         Route::prefix('musicas')->group(function () {
+            Route::get('/', [MusicaController::class, 'index'])->name('api.musicas.index');
+            Route::get('/{uuid}/detalhes', [MusicaController::class, 'detalhes'])->name('api.musicas.detalhes');
             Route::get('/{uuid}', [MusicaController::class, 'show'])->name('api.musicas.show');
         });
 

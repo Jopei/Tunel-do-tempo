@@ -65,43 +65,4 @@ class UsuarioService
 
         return $this->usuarioRepository->buscarPorUuid($dto->uuid);
     }
-
-    public function atualizarFotoPerfil(string $uuid, $arquivo, $usuarioLogado)
-    {
-        if ($usuarioLogado->uuid !== $uuid) {
-            throw new AuthorizationException(
-                'Você não pode alterar a foto de outro usuário.'
-            );
-        }
-
-        $usuario = $this->usuarioRepository->buscarPorUuid($uuid);
-
-        $nomeArquivo = Str::uuid() . '.' . $arquivo->getClientOriginalExtension();
-
-        $caminho = $arquivo->storeAs(
-            'usuarios/fotos',
-            $nomeArquivo,
-            'public'
-        );
-
-        $foto = Foto::create([
-            FotoMapping::UUID => Str::uuid(),
-            FotoMapping::PATH => $caminho,
-            FotoMapping::TITULO => 'Foto de perfil',
-        ]);
-
-        UsuarioFoto::where(
-            UsuarioFotoMapping::USUARIO_ID,
-            $usuario->id
-        )->update([
-            UsuarioFotoMapping::DELETED_AT => now()
-        ]);
-
-        UsuarioFoto::create([
-            UsuarioFotoMapping::USUARIO_ID => $usuario->id,
-            UsuarioFotoMapping::FOTO_ID => $foto->id,
-        ]);
-
-        return $foto;
-    }
 }

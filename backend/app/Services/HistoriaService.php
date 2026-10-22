@@ -188,19 +188,24 @@ class HistoriaService
         });
     }
 
-    public function buscarPorUuidComUsuarios(string $uuid)
+    public function buscarPorUuidComUsuarios(string $uuid, ?int $usuarioId = null)
     {
-        return $this->historiaRepository->buscarPorUuidComUsuarios($uuid);
+        return $this->historiaRepository->buscarPorUuidComUsuarios($uuid, $usuarioId);
     }
 
     public function buscarCompletaPorUuid(string $uuid, ?int $usuarioId = null)
     {
-        return $this->historiaRepository->buscarCompletaPorUuid($uuid, $usuarioId);
+        $historia = $this->historiaRepository->buscarCompletaPorUuid($uuid, $usuarioId);
+        [$anterior, $proxima] = $this->historiaRepository->vizinhas($historia);
+        $historia->setAttribute('anterior', $anterior);
+        $historia->setAttribute('proxima', $proxima);
+
+        return $historia;
     }
 
-    public function listarResumo(array $filtros = [], ?int $perPage = null)
+    public function listarResumo(array $filtros = [], ?int $perPage = null, ?int $usuarioId = null)
     {
-        return $this->historiaRepository->listarResumo($filtros, $perPage);
+        return $this->historiaRepository->listarResumo($filtros, $perPage, $usuarioId);
     }
 
     public function listarFavoritas(int $usuarioId, int $perPage)

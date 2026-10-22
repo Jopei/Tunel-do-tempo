@@ -8,5 +8,7 @@ class VideoUpdateDTO
         public string $uuid,
         public ?string $titulo = null,
         public ?string $descricao = null,
+        public ?string $dataVideo = null,
+        public bool $informouDataVideo = false,
     ) {}
 }
