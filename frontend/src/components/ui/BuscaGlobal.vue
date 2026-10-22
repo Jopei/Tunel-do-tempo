@@ -68,7 +68,7 @@ const grupos = computed(() => [
   { chave: "historias", titulo: "Histórias", icone: "mdi-book-open-page-variant-outline", itens: resultado.value.historias ?? [], destino: (i) => `/historias/${i.uuid}` },
   { chave: "fotos", titulo: "Fotos", icone: "mdi-image-outline", itens: resultado.value.fotos ?? [], destino: (i) => `/galeria-fotos?foto=${i.uuid}` },
   { chave: "videos", titulo: "Vídeos", icone: "mdi-video-outline", itens: resultado.value.videos ?? [], destino: () => "/galeria-videos" },
-  { chave: "membros", titulo: "Membros", icone: "mdi-account-outline", itens: resultado.value.membros ?? [], destino: (i) => `/membros/${i.uuid}` },
+  { chave: "membros", titulo: "Membros", icone: "mdi-account-outline", itens: resultado.value.membros ?? [], destino: (i) => `/membros/${i.slug || i.uuid}` },
 ]);
 const total = computed(() => grupos.value.reduce((n, g) => n + g.itens.length, 0));
 

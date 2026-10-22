@@ -30,7 +30,8 @@ export const useAuthStore = defineStore("auth", {
       const u = state.usuario;
       if (!u) return null;
       const v = state.fotoVersao ? `?v=${state.fotoVersao}` : "";
-      if (u.foto_url) return u.foto_url + v;
+      // A API já versiona foto_url (?v=); só acrescenta a versão local se não houver query.
+      if (u.foto_url) return u.foto_url.includes("?") ? u.foto_url : u.foto_url + v;
       if (u.foto?.uuid) return `${apiBase()}/fotos/${u.foto.uuid}${v}`;
       if (u.foto_perfil) {
         return apiBase().replace(/\/api$/, "") + "/storage/" + u.foto_perfil + v;
@@ -79,7 +80,8 @@ export const useAuthStore = defineStore("auth", {
         const { data } = await api.get("/me");
         const me = data.data ?? data;
         atualizado = { ...this.usuario, ...me, tipo_usuario: me.tipo_usuario?.nome ?? me.tipo_usuario ?? this.usuario.tipo_usuario };
-        if (me.foto_perfil) atualizado.foto_url = null;
+        // foto_url (com ?v=) é a fonte da foto atual; o path cru só vale se a API não mandar a URL.
+        if (!me.foto_url && me.foto_perfil) atualizado.foto_url = null;
       } catch (e) {
         if (e.response?.status !== 404) throw e;
         // Fallback para backends sem /me

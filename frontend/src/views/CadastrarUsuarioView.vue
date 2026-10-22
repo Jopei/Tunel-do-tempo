@@ -1,6 +1,6 @@
 <template>
-  <section class="cadastrar-usuario-page tm-immersive">
-    <div v-if="concluido" class="card boas-vindas">
+  <AuthLayout larga>
+    <div v-if="concluido" class="boas-vindas">
       <v-icon size="56" color="success" aria-hidden="true">mdi-check-circle-outline</v-icon>
       <h1 class="tm-title">Cadastro concluído, {{ primeiroNome }}.</h1>
       <p>Agora você faz parte da rua.</p>
@@ -103,7 +103,7 @@
         <v-btn type="submit" variant="flat" color="primary" size="large" :loading="loading" :disabled="loading">Cadastrar</v-btn>
       </div>
     </form>
-  </section>
+  </AuthLayout>
 </template>
 
 <script setup>
@@ -113,6 +113,7 @@ import { cadastrarUsuario } from "@/services/usuario.service";
 import { useApiError } from "@/composables/useApiError";
 import { useConfirm } from "@/composables/useConfirm";
 import { mascaraTelefone, forcaSenha } from "@/composables/useFormat";
+import AuthLayout from "@/components/auth/AuthLayout.vue";
 import AvatarUpload from "@/components/ui/AvatarUpload.vue";
 
 // IDs fixos dos tipos no backend (tipo_usuarios).
@@ -208,31 +209,18 @@ onBeforeRouteLeave(async () => {
 </script>
 
 <style scoped>
-.cadastrar-usuario-page {
-  min-height: 100dvh;
-  background: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)), url("/backgrounds/cadastrar-bg.svg") center/cover fixed;
-  padding: calc(var(--tm-navbar-h) + 24px) var(--tm-space-4) var(--tm-space-7);
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-}
 .card {
   width: 100%;
-  max-width: 900px;
-  background: rgb(var(--v-theme-surface));
-  color: rgb(var(--v-theme-on-surface));
-  padding: var(--tm-space-7);
-  border-radius: var(--tm-radius-lg);
-  box-shadow: var(--tm-shadow-lg);
 }
 .boas-vindas {
   text-align: center;
-  max-width: 520px;
+  max-width: 440px;
+  margin: 0 auto;
 }
 h1 {
   text-align: center;
-  font-size: var(--tm-fs-3xl);
-  margin-bottom: var(--tm-space-5);
+  font-size: var(--tm-fs-2xl);
+  margin-bottom: var(--tm-space-4);
 }
 .legenda-foto {
   text-align: center;
@@ -263,14 +251,17 @@ h1 {
   font-weight: 700;
   padding: 0 var(--tm-space-2);
 }
+/* Botão fixo no rodapé do painel (que rola): "Cadastrar" nunca fica fora da tela */
 .botao-container {
-  margin-top: var(--tm-space-5);
+  position: sticky;
+  bottom: calc(-1 * var(--tm-space-4));
+  margin-top: var(--tm-space-4);
+  padding: var(--tm-space-3) 0 var(--tm-space-4);
   text-align: center;
+  background: linear-gradient(to top, rgb(var(--v-theme-surface)) 75%, transparent);
+  z-index: 1;
 }
 @media (max-width: 600px) {
-  .card {
-    padding: var(--tm-space-4);
-  }
   .grid {
     grid-template-columns: 1fr;
   }

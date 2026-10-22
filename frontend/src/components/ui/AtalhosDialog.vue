@@ -29,7 +29,10 @@ const ATALHOS = [
   { teclas: "g c", descricao: "Ir para as histórias" },
   { teclas: "g f", descricao: "Ir para as fotos" },
   { teclas: "g v", descricao: "Ir para os vídeos" },
-  { teclas: "Esc", descricao: "Fechar menus e janelas" },
+  { teclas: "Esc", descricao: "Fechar menus e janelas / limpar seleção" },
+  { teclas: "← →", descricao: "Foto anterior / próxima (visualizador)" },
+  { teclas: "i", descricao: "Detalhes da foto (visualizador)" },
+  { teclas: "Shift+F10", descricao: "Menu de ações do vídeo ou da pasta em foco" },
 ];
 
 const DESTINOS = { h: "/", c: "/historias", f: "/galeria-fotos", v: "/galeria-videos" };

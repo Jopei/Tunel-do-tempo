@@ -1,0 +1,48 @@
+<template>
+  <svg
+    :class="['rua-logo', { 'rua-logo--mono': mono }]"
+    xmlns="http://www.w3.org/2000/svg"
+    :viewBox="completa ? '0 0 270 100' : '0 0 100 100'"
+    :width="completa ? largura : tamanho"
+    :height="tamanho"
+    role="img"
+    aria-label="A Rua"
+  >
+    <circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" stroke-width="1.6" opacity=".55"/>
+    <g fill="currentColor"><circle cx="50.00" cy="4.00" r="3.4"/><circle cx="71.38" cy="9.27" r="3.4"/><circle cx="87.86" cy="23.87" r="3.4"/><circle cx="95.66" cy="44.46" r="3.4"/><circle cx="93.01" cy="66.31" r="3.4"/><circle cx="80.50" cy="84.43" r="3.4"/><circle cx="61.01" cy="94.66" r="3.4"/><circle cx="38.99" cy="94.66" r="3.4"/><circle cx="19.50" cy="84.43" r="3.4"/><circle cx="6.99" cy="66.31" r="3.4"/><circle cx="4.34" cy="44.46" r="3.4"/><circle cx="12.14" cy="23.87" r="3.4"/><circle cx="28.62" cy="9.27" r="3.4"/></g>
+    <path fill="currentColor" fill-rule="evenodd" d="M26 18H74A8 8 0 0 1 82 26V74A8 8 0 0 1 74 82H26A8 8 0 0 1 18 74V26A8 8 0 0 1 26 18ZM36 28H52a13 13 0 0 1 5.2 24.9L65 72H55L48.4 55.5H45V72H36ZM45 36.5V47.5H52a5.5 5.5 0 0 0 0-11Z"/>
+    <template v-if="completa">
+      <g fill="none" stroke="currentColor" stroke-width="5.5" stroke-linejoin="miter">
+      <path d="M122 60L134 32L146 60M127 50H141"/>
+      <path d="M170 60V32H180a9 9 0 0 1 0 18H170M181 50L190 60"/>
+      <path d="M200 32V48a9 9 0 0 0 18 0V32"/>
+      <path d="M228 60L240 32L252 60M233 50H247"/>
+      </g>
+      <text x="122" y="84" font-family="Fraunces, Georgia, serif" font-size="11" letter-spacing="3" fill="currentColor" opacity=".8">RUA R · 2011–2021</text>
+    </template>
+  </svg>
+</template>
+
+<script setup>
+import { computed } from "vue";
+
+const props = defineProps({
+  variante: { type: String, default: "simbolo", validator: (v) => ["completa", "simbolo"].includes(v) },
+  tamanho: { type: [Number, String], default: 32 },
+  mono: { type: Boolean, default: false },
+});
+
+const completa = computed(() => props.variante === "completa");
+const largura = computed(() => Math.round(Number(props.tamanho) * 2.7));
+</script>
+
+<style scoped>
+.rua-logo {
+  display: block;
+  flex: none;
+  color: var(--tm-gold-text);
+}
+.rua-logo--mono {
+  color: inherit;
+}
+</style>

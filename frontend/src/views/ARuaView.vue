@@ -3,9 +3,10 @@
     <div class="rua-card page-reveal">
       <div class="rua-body">
         <div class="texto">
+          <RuaLogo variante="completa" :tamanho="64" class="rua-marca" />
           <p class="dica">
             <v-icon size="20" aria-hidden="true">mdi-gesture-tap</v-icon>
-            {{ mobile ? "Toque" : "Clique" }} em um círculo para explorar
+            {{ mobile ? "Toque" : "Clique" }} em uma esfera para conhecer um membro
           </p>
 
           <h1>
@@ -30,6 +31,7 @@ import { onMounted } from "vue";
 import { useDisplay } from "vuetify";
 import { useAuthStore } from "@/stores/auth";
 import { finalizarTransicao } from "@/composables/useTransicao";
+import RuaLogo from "@/components/brand/RuaLogo.vue";
 import RuaOrbita from "@/components/rua/RuaOrbita.vue";
 
 const auth = useAuthStore();
@@ -72,6 +74,12 @@ onMounted(finalizarTransicao);
 
 .texto {
   padding-left: var(--tm-space-5);
+}
+
+.rua-marca {
+  margin-bottom: var(--tm-space-5);
+  max-width: 100%;
+  height: auto;
 }
 
 .dica {

@@ -1,6 +1,7 @@
 <template>
   <div class="tm-empty" role="status">
-    <v-icon :icon="icone" size="48" class="mb-3" aria-hidden="true" />
+    <span v-if="moldura" class="fv-vazio-moldura"><v-icon :icon="icone" size="48" aria-hidden="true" /></span>
+    <v-icon v-else :icon="icone" size="48" class="mb-3" aria-hidden="true" />
     <h2 class="text-h6 mb-1">{{ titulo }}</h2>
     <p v-if="texto" class="text-medium-emphasis mb-4">{{ texto }}</p>
     <slot />
@@ -12,6 +13,8 @@ defineProps({
   icone: { type: String, default: "mdi-package-variant" },
   titulo: { type: String, required: true },
   texto: { type: String, default: "" },
+  /** Ícone sobre moldura de foto girada (fotos/vídeos v2; requer .fv-era). */
+  moldura: Boolean,
 });
 </script>
 

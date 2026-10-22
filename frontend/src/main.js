@@ -11,6 +11,7 @@ import "./assets/tokens.css";
 
 import Vue3Toastify from "vue3-toastify";
 import "vue3-toastify/dist/index.css";
+import "./assets/toast.css";
 
 const app = createApp(App);
 
@@ -30,6 +31,7 @@ app.use(Vue3Toastify, {
   autoClose: 4000,
   position: window.matchMedia("(min-width: 960px)").matches ? "bottom-right" : "bottom-center",
   theme: "colored",
+  transition: "slide",
   pauseOnHover: true,
 });
 

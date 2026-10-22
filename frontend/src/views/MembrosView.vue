@@ -23,7 +23,7 @@
 
       <ul v-else class="grid">
         <li v-for="m in filtrados" :key="m.uuid">
-          <router-link :to="{ name: 'membro', params: { uuid: m.uuid } }" class="membro-card">
+          <router-link :to="{ name: 'membro', params: { slug: m.slug || m.uuid } }" class="membro-card">
             <AvatarUsuario :nome="m.nome" :src="fotoDe(m)" :size="72" />
             <strong>{{ m.nome }}</strong>
             <span v-if="m.descricao" class="bio">{{ m.descricao }}</span>
