@@ -5,8 +5,8 @@ export async function buscarHistoriasPorLimite(limite = 7) {
   return response.data;
 }
 
-export async function buscarHistoriasResumo() {
-  const response = await api.get("/historias/resumo");
+export async function buscarHistoriasResumo(params = {}) {
+  const response = await api.get("/historias/resumo", { params });
   return response.data;
 }
 

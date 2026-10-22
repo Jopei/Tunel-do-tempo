@@ -49,6 +49,9 @@ function abrir(i) {
   lightbox.value = true;
 }
 
+/** Abre direto o visualizador na foto i (sem passar pela grade). */
+defineExpose({ abrirEm: abrir });
+
 async function copiar(foto) {
   try {
     await navigator.clipboard.writeText(`${location.origin}/galeria-fotos?foto=${foto.uuid}`);

@@ -1,5 +1,5 @@
 <template>
-  <section class="historia-show-page tm-immersive">
+  <section class="historia-show-page historias-era tm-immersive" :style="{ '--hx-ano-h': hue }">
     <v-progress-linear
       v-if="historia"
       :model-value="progresso"
@@ -9,19 +9,52 @@
       aria-hidden="true"
     />
 
-    <div class="painel">
-      <nav class="migalhas no-print" aria-label="Você está em">
-        <router-link to="/historias"><v-icon size="18" aria-hidden="true">mdi-arrow-left</v-icon> Histórias</router-link>
-        <template v-if="historia">
-          <span aria-hidden="true">/</span>
-          <span aria-current="page" class="atual">{{ historia.titulo }}</span>
-        </template>
-      </nav>
+    <!-- Barra compacta fixa (aparece quando a barra de reações sai da tela) -->
+    <div
+      v-if="historia"
+      class="hx-barra-fixa no-print"
+      :class="{ 'hx-barra-fixa--visivel': barraFixa }"
+      :inert="!barraFixa"
+      role="toolbar"
+      aria-label="Reações rápidas"
+    >
+      <button type="button" class="hx-barra-fixa__btn" :class="{ 'hx-acao--ativa': historia.favoritado }" :aria-pressed="!!historia.favoritado" @click="alternarFavorito">
+        <v-icon aria-hidden="true">{{ historia.favoritado ? "mdi-heart" : "mdi-heart-outline" }}</v-icon>
+        <span>{{ historia.favoritos_count || 0 }}</span>
+        <span class="sr-only">{{ rotuloCurtidas }}</span>
+      </button>
+      <button type="button" class="hx-barra-fixa__btn" @click="comentar">
+        <v-icon aria-hidden="true">mdi-comment-outline</v-icon>
+        <span>{{ lembrancasTotal }}</span>
+        <span class="sr-only">{{ lembrancasTotal === 1 ? "comentário" : "comentários" }}</span>
+      </button>
+      <button type="button" class="hx-barra-fixa__btn" aria-label="Compartilhar história" @click="compartilhar">
+        <v-icon aria-hidden="true">mdi-share-variant-outline</v-icon>
+      </button>
+      <span class="hx-barra-fixa__titulo" aria-hidden="true">{{ historia.titulo }}</span>
+    </div>
 
+    <!-- Hero: capa de timeline -->
+    <HistoriaHero v-if="historia" :capa="capaHero" :titulo="historia.titulo" :data="historia.data_historia" />
+    <div v-else-if="carregando" class="hx-hero-esqueleto hx-skeleton" aria-hidden="true"></div>
+    <div v-else class="hx-hero-esqueleto hx-hero-esqueleto--vazio">
+      <nav class="hx-hero-esqueleto__migalhas" aria-label="Você está em">
+        <router-link to="/historias"><v-icon size="18" aria-hidden="true">mdi-arrow-left</v-icon> Histórias</router-link>
+      </nav>
+    </div>
+
+    <div class="hx-folha" :class="{ 'hx-folha--sem-hero': !carregando && !historia }">
       <!-- carregando -->
-      <div v-if="carregando" class="carregando" aria-busy="true" aria-label="Carregando história">
-        <v-skeleton-loader type="heading" />
-        <v-skeleton-loader type="paragraph, paragraph, paragraph" />
+      <div v-if="carregando" class="hx-carregando" aria-busy="true" aria-label="Carregando história">
+        <div class="hx-carregando__autor">
+          <span class="hx-skeleton hx-carregando__avatar"></span>
+          <span class="hx-carregando__linhas">
+            <span class="hx-skeleton hx-carregando__linha"></span>
+            <span class="hx-skeleton hx-carregando__linha hx-carregando__linha--curta"></span>
+          </span>
+        </div>
+        <span class="hx-skeleton hx-carregando__titulo"></span>
+        <span v-for="n in 4" :key="n" class="hx-skeleton hx-carregando__linha"></span>
       </div>
 
       <!-- não encontrada -->
@@ -43,85 +76,74 @@
       />
 
       <template v-else-if="historia">
-        <header class="cabecalho">
-          <h1 class="titulo">{{ historia.titulo }}</h1>
-          <p v-if="historia.descricao_curta" class="descricao">{{ historia.descricao_curta }}</p>
+        <header class="hx-cabecalho">
+          <HistoriaAutoria :usuarios="historia.usuarios ?? []" :data="historia.data_historia" :tamanho="40" empilhar>
+            <template v-if="ano" #extra>
+              <span class="hx-checkin"><v-icon size="14" aria-hidden="true">mdi-map-marker</v-icon> na Rua · {{ ano }}</span>
+            </template>
+          </HistoriaAutoria>
 
-          <div class="meta">
-            <v-chip size="small" label :color="historia.tipo_historia === 'Principal' ? 'primary' : undefined">
-              {{ historia.tipo_historia }}
-            </v-chip>
-            <span v-if="historia.data_historia" class="meta-item">
-              <v-icon size="16" aria-hidden="true">mdi-calendar</v-icon>
-              <time :datetime="historia.data_historia">{{ formatarData(historia.data_historia) }}</time>
-            </span>
-            <span class="meta-item">
-              <v-icon size="16" aria-hidden="true">mdi-clock-outline</v-icon>
-              {{ minutos }} min de leitura
-            </span>
+          <div class="hx-cabecalho__chips">
+            <v-chip size="small" label :color="historia.tipo_historia === 'Principal' ? 'primary' : undefined">{{ historia.tipo_historia }}</v-chip>
+            <span class="hx-cabecalho__leitura"><v-icon size="16" aria-hidden="true">mdi-clock-outline</v-icon> {{ minutos }} min de leitura</span>
           </div>
 
-          <div v-if="historia.usuarios?.length" class="membros">
-            <span class="por">Por</span>
-            <router-link
-              v-for="u in historia.usuarios"
-              :key="u.uuid"
-              :to="{ name: 'membro', params: { uuid: u.uuid } }"
-              class="membro"
-            >
-              <AvatarUsuario :nome="u.nome" :size="28" />
-              <span>{{ u.nome }}</span>
-            </router-link>
-          </div>
+          <h1 class="hx-titulo tm-title">{{ historia.titulo }}</h1>
+          <p v-if="historia.descricao_curta" class="hx-descricao">{{ historia.descricao_curta }}</p>
         </header>
 
-        <div class="barra-acoes no-print" role="toolbar" aria-label="Ações da história">
-          <v-btn
-            variant="tonal"
-            prepend-icon="mdi-image-multiple-outline"
-            :disabled="!(historia.fotos_midia ?? historia.fotos)?.length"
-            @click="mostrarGaleriaFotos = true"
-          >
-            Fotos ({{ (historia.fotos_midia ?? historia.fotos)?.length || 0 }})
-            <v-tooltip v-if="!(historia.fotos_midia ?? historia.fotos)?.length" activator="parent" location="top">Sem fotos</v-tooltip>
-          </v-btn>
-          <v-btn
-            variant="tonal"
-            prepend-icon="mdi-video-outline"
-            :disabled="!(historia.videos_midia ?? historia.videos)?.length"
-            @click="mostrarGaleriaVideos = true"
-          >
-            Vídeos ({{ (historia.videos_midia ?? historia.videos)?.length || 0 }})
-            <v-tooltip v-if="!(historia.videos_midia ?? historia.videos)?.length" activator="parent" location="top">Sem vídeos</v-tooltip>
-          </v-btn>
-          <v-btn
-            variant="tonal"
-            prepend-icon="mdi-music"
-            :disabled="!(historia.musicas_midia ?? historia.musicas)?.length"
-            @click="mostrarGaleriaMusicas = true"
-          >
-            Músicas ({{ (historia.musicas_midia ?? historia.musicas)?.length || 0 }})
-            <v-tooltip v-if="!(historia.musicas_midia ?? historia.musicas)?.length" activator="parent" location="top">Sem músicas</v-tooltip>
-          </v-btn>
+        <!-- Quem estava lá -->
+        <section v-if="historia.usuarios?.length" class="hx-presentes" aria-labelledby="hx-presentes-t">
+          <h2 id="hx-presentes-t" class="hx-secao-titulo tm-title">Quem estava lá <span class="hx-contagem">({{ historia.usuarios.length }})</span></h2>
+          <ul class="hx-presentes__lista" role="region" tabindex="0" aria-label="Pessoas marcadas nesta história">
+            <li v-for="u in presentesVisiveis" :key="u.uuid">
+              <router-link :to="{ name: 'membro', params: { slug: chaveMembro(u) } }" class="hx-presente">
+                <AvatarUsuario :nome="u.nome" :src="u.foto_url" :size="56" />
+                <span class="hx-presente__nome">{{ u.nome }}</span>
+              </router-link>
+            </li>
+            <li v-if="restoPresentes > 0 && !todosPresentes">
+              <button type="button" class="hx-presente hx-presente--mais" :aria-label="`Mostrar mais ${restoPresentes} pessoas`" @click="todosPresentes = true">
+                <span class="hx-presente__mais">+{{ restoPresentes }}</span>
+                <span class="hx-presente__nome">Ver todos</span>
+              </button>
+            </li>
+          </ul>
+        </section>
 
+        <!-- Reações -->
+        <div ref="reacoesRef" class="hx-reacoes no-print">
+          <p class="hx-reacoes__contadores">
+            <span v-if="historia.favoritos_count" class="hx-reacoes__curtidas">
+              <v-icon size="16" color="error" aria-hidden="true">mdi-heart</v-icon> {{ rotuloCurtidas }}
+            </span>
+            <span class="hx-reacoes__resto">{{ resumoContadores }}</span>
+          </p>
+          <div class="hx-reacoes__acoes" role="group" aria-label="Reações">
+            <button type="button" class="hx-acao hx-acao--curtir" :class="{ 'hx-acao--ativa': historia.favoritado }" :aria-pressed="!!historia.favoritado" @click="alternarFavorito">
+              <v-icon size="22" aria-hidden="true" class="hx-acao__icone">{{ historia.favoritado ? "mdi-heart" : "mdi-heart-outline" }}</v-icon>
+              {{ historia.favoritado ? REDE.verbos.curtido : REDE.verbos.curtir }}
+            </button>
+            <button type="button" class="hx-acao hx-acao--comentar" @click="comentar">
+              <v-icon size="22" aria-hidden="true" class="hx-acao__icone">mdi-comment-outline</v-icon>
+              {{ REDE.verbos.comentar }}
+            </button>
+            <button type="button" class="hx-acao hx-acao--compartilhar" @click="compartilhar">
+              <v-icon size="22" aria-hidden="true" class="hx-acao__icone">mdi-share-variant-outline</v-icon>
+              {{ REDE.verbos.compartilhar }}
+            </button>
+          </div>
+        </div>
+
+        <div class="hx-ferramentas no-print" role="toolbar" aria-label="Mais ações da história">
+          <v-btn v-if="totalFotos" variant="text" prepend-icon="mdi-image-multiple-outline" @click="mostrarGaleriaFotos = true">Fotos ({{ totalFotos }})</v-btn>
+          <v-btn v-if="totalVideos" variant="text" prepend-icon="mdi-video-outline" @click="mostrarGaleriaVideos = true">Vídeos ({{ totalVideos }})</v-btn>
+          <v-btn v-if="totalMusicas" variant="text" prepend-icon="mdi-music" @click="mostrarGaleriaMusicas = true">Músicas ({{ totalMusicas }})</v-btn>
           <v-spacer />
-
-          <v-btn-group density="comfortable" variant="text" class="tamanho" aria-label="Tamanho do texto">
+          <v-btn-group density="comfortable" variant="text" class="hx-ferramentas__tamanho" aria-label="Tamanho do texto">
             <v-btn aria-label="Diminuir texto" :disabled="tamanho <= 16" @click="mudarTamanho(-1)">A-</v-btn>
             <v-btn aria-label="Aumentar texto" :disabled="tamanho >= 22" @click="mudarTamanho(1)">A+</v-btn>
           </v-btn-group>
-          <v-btn
-            variant="text"
-            :prepend-icon="historia.favoritado ? 'mdi-heart' : 'mdi-heart-outline'"
-            :aria-pressed="!!historia.favoritado"
-            :color="historia.favoritado ? 'error' : undefined"
-            @click="alternarFavorito"
-          >
-            {{ historia.favoritado ? "Guardada na memória" : "Guardar na memória" }}
-          </v-btn>
-          <v-btn icon variant="text" aria-label="Compartilhar história" @click="compartilhar">
-            <v-icon>mdi-share-variant-outline</v-icon>
-          </v-btn>
           <v-btn icon variant="text" aria-label="Imprimir ou salvar em PDF" @click="imprimir">
             <v-icon>mdi-printer-outline</v-icon>
           </v-btn>
@@ -130,34 +152,54 @@
           </v-btn>
         </div>
 
-        <nav v-if="indice.length >= 3" class="indice no-print" aria-label="Índice da história">
-          <h2 class="indice-titulo">Nesta história</h2>
+        <details v-if="indice.length >= 3" class="hx-indice no-print">
+          <summary>Nesta história</summary>
           <ul>
             <li v-for="h in indice" :key="h.id" :class="`n${h.nivel}`">
               <a :href="`#${h.id}`" @click.prevent="irPara(h.id)">{{ h.texto }}</a>
             </li>
           </ul>
-        </nav>
+        </details>
 
-        <article ref="leituraRef" class="tm-prose conteudo" :style="{ '--tm-reading-size': `${tamanho}px` }" v-html="conteudoHtml"></article>
+        <article ref="leituraRef" class="tm-prose hx-conteudo" :style="{ '--tm-reading-size': `${tamanho}px` }" v-html="conteudoHtml"></article>
 
-        <LembrancasSecao :key="historia.uuid" :historia-uuid="historia.uuid" class="no-print" />
+        <!-- Álbum e mídia -->
+        <HistoriaAlbum :fotos="fotosAlbum" class="no-print" @abrir="abrirFoto" />
 
-        <nav v-if="anterior || proxima" class="vizinhas no-print" aria-label="Outras histórias">
-          <router-link v-if="anterior" :to="{ name: 'historias-show', params: { uuid: anterior.uuid } }" class="viz ant">
-            <span class="dir"><v-icon size="16" aria-hidden="true">mdi-arrow-left</v-icon> Anterior</span>
-            <strong>{{ anterior.titulo }}</strong>
-          </router-link>
-          <router-link v-if="proxima" :to="{ name: 'historias-show', params: { uuid: proxima.uuid } }" class="viz prox">
-            <span class="dir">Próxima <v-icon size="16" aria-hidden="true">mdi-arrow-right</v-icon></span>
-            <strong>{{ proxima.titulo }}</strong>
-          </router-link>
-        </nav>
+        <section v-if="videos.length" class="hx-videos no-print" aria-labelledby="hx-videos-t">
+          <h2 id="hx-videos-t" class="hx-secao-titulo tm-title">Vídeos</h2>
+          <ul class="hx-videos__lista" role="region" tabindex="0" aria-label="Vídeos da história">
+            <li v-for="(v, i) in videos.slice(0, 4)" :key="v.uuid">
+              <button type="button" class="hx-video hx-foto" :aria-label="`Assistir ${v.titulo || `vídeo ${i + 1}`}`" @click="mostrarGaleriaVideos = true">
+                <img v-if="v.poster_url" :src="v.poster_url" alt="" class="hx-foto__img" loading="lazy" decoding="async" />
+                <span class="hx-video__play" aria-hidden="true"><v-icon size="32">mdi-play</v-icon></span>
+                <span v-if="v.duracao" class="hx-video__duracao" aria-hidden="true">{{ formatarDuracao(v.duracao) }}</span>
+              </button>
+            </li>
+          </ul>
+        </section>
+
+        <section v-if="musicas.length" class="hx-musicas no-print" aria-labelledby="hx-musicas-t">
+          <h2 id="hx-musicas-t" class="hx-secao-titulo tm-title">Músicas</h2>
+          <button type="button" class="hx-musica" @click="mostrarGaleriaMusicas = true">
+            <v-icon aria-hidden="true">mdi-music-circle-outline</v-icon>
+            <span class="hx-musica__texto">
+              <small>Tocando agora</small>
+              <strong>{{ musicas[0].titulo || "Trilha da história" }}</strong>
+            </span>
+            <span v-if="musicas.length > 1" class="hx-musica__mais">+{{ musicas.length - 1 }}</span>
+          </button>
+        </section>
+
+        <LembrancasSecao ref="lembrancasRef" :key="historia.uuid" :historia-uuid="historia.uuid" comentarios class="no-print" @mudou="aoMudarLembrancas" />
+
+        <HistoriaVizinhas :anterior="historia.anterior" :proxima="historia.proxima" :ano-atual="ano" />
       </template>
     </div>
 
     <template v-if="historia">
       <GaleriaFotos
+        ref="galeriaFotosRef"
         v-model="mostrarGaleriaFotos"
         :fotos="historia.fotos"
         :midia="historia.fotos_midia"
@@ -174,22 +216,31 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
 import { useRoute } from "vue-router";
 import api from "@/services/api";
-import { buscarHistoriasResumo } from "@/services/historia.service";
+import { chaveMembro } from "@/services/membro.service";
 import { useAuthStore } from "@/stores/auth";
 import { useNotify } from "@/composables/useNotify";
 import { sanitizar } from "@/composables/useSanitize";
-import { formatarData, tempoLeitura } from "@/composables/useFormat";
+import { tempoLeitura, formatarDuracao } from "@/composables/useFormat";
+import { anoDe, hueDoAno } from "@/composables/useCapitulos";
+import { REDE } from "@/config/esquina";
 import GaleriaFotos from "@/components/historias/GaleriaFotos.vue";
 import GaleriaVideos from "@/components/historias/GaleriaVideos.vue";
 import GaleriaMusicas from "@/components/historias/GaleriaMusicas.vue";
 import EditarHistoriaModal from "@/components/historias/EditarHistoriaModal.vue";
+import HistoriaHero from "@/components/historias/HistoriaHero.vue";
+import HistoriaAutoria from "@/components/historias/HistoriaAutoria.vue";
+import HistoriaAlbum from "@/components/historias/HistoriaAlbum.vue";
+import HistoriaVizinhas from "@/components/historias/HistoriaVizinhas.vue";
 import LembrancasSecao from "@/components/ui/LembrancasSecao.vue";
 import { favoritarHistoria, desfavoritarHistoria } from "@/services/favorito.service";
 import AvatarUsuario from "@/components/ui/AvatarUsuario.vue";
 import TmEmptyState from "@/components/ui/TmEmptyState.vue";
 import TmErrorState from "@/components/ui/TmErrorState.vue";
+import "@/assets/historias-era.css";
+import "@/assets/historias-motion.css";
 
 const CHAVE_TAMANHO = "tunel-leitura-tamanho";
+const MAX_PRESENTES = 8;
 
 const route = useRoute();
 const auth = useAuthStore();
@@ -199,15 +250,23 @@ const historia = ref(null);
 const carregando = ref(true);
 const erro = ref(false);
 const status = ref(null);
-const lista = ref([]);
 const progresso = ref(0);
 const leituraRef = ref(null);
+const reacoesRef = ref(null);
+const lembrancasRef = ref(null);
+const galeriaFotosRef = ref(null);
+const barraFixa = ref(false);
+const todosPresentes = ref(false);
+const lembrancasTotal = ref(0);
 const tamanho = ref(Number(localStorage.getItem(CHAVE_TAMANHO)) || 18);
 
 const mostrarGaleriaFotos = ref(false);
 const mostrarGaleriaVideos = ref(false);
 const mostrarGaleriaMusicas = ref(false);
 const dialogEditar = ref(false);
+
+const ano = computed(() => anoDe(historia.value));
+const hue = computed(() => hueDoAno(ano.value));
 
 // Conteúdo sanitizado + ids nos títulos para o índice
 const conteudoProcessado = computed(() => {
@@ -225,48 +284,77 @@ const conteudoHtml = computed(() => conteudoProcessado.value.html);
 const indice = computed(() => conteudoProcessado.value.titulos.filter((t) => t.texto));
 const minutos = computed(() => tempoLeitura(historia.value?.conteudo ?? ""));
 
-const posicao = computed(() => lista.value.findIndex((h) => h.uuid === route.params.uuid));
-const anterior = computed(() => (posicao.value > 0 ? lista.value[posicao.value - 1] : null));
-const proxima = computed(() =>
-  posicao.value >= 0 && posicao.value < lista.value.length - 1 ? lista.value[posicao.value + 1] : null,
-);
+// Mídia
+const fotosAlbum = computed(() => historia.value?.fotos_midia ?? []);
+const videos = computed(() => historia.value?.videos_midia ?? []);
+const musicas = computed(() => historia.value?.musicas_midia ?? []);
+const totalFotos = computed(() => (historia.value?.fotos_midia ?? historia.value?.fotos)?.length || 0);
+const totalVideos = computed(() => (historia.value?.videos_midia ?? historia.value?.videos)?.length || 0);
+const totalMusicas = computed(() => (historia.value?.musicas_midia ?? historia.value?.musicas)?.length || 0);
+// Hero em largura total: prefere a foto original; capa_url costuma ser a miniatura.
+const capaHero = computed(() => fotosAlbum.value[0]?.url || historia.value?.capa_url || null);
 
+const presentesVisiveis = computed(() => {
+  const todos = historia.value?.usuarios ?? [];
+  return todosPresentes.value ? todos : todos.slice(0, MAX_PRESENTES);
+});
+const restoPresentes = computed(() => Math.max(0, (historia.value?.usuarios?.length ?? 0) - MAX_PRESENTES));
+
+const plural = (n, s, p) => `${n} ${n === 1 ? s : p}`;
+const rotuloCurtidas = computed(() => {
+  const n = historia.value?.favoritos_count || 0;
+  return `${n} ${n === 1 ? "pessoa curtiu" : "pessoas curtiram"}`;
+});
+const resumoContadores = computed(() => {
+  const p = [];
+  if (lembrancasTotal.value) p.push(plural(lembrancasTotal.value, "comentário", "comentários"));
+  if (totalFotos.value) p.push(plural(totalFotos.value, "foto", "fotos"));
+  if (totalVideos.value) p.push(plural(totalVideos.value, "vídeo", "vídeos"));
+  return p.join(" · ");
+});
+
+let tokenCarga = 0;
 async function carregar() {
+  const meu = ++tokenCarga;
+  const uuid = route.params.uuid;
   carregando.value = true;
   erro.value = false;
   status.value = null;
+  todosPresentes.value = false;
   try {
-    const { data } = await api.get(`/historias/${route.params.uuid}`);
+    const { data } = await api.get(`/historias/${uuid}`);
+    if (meu !== tokenCarga) return; // chegou depois de outra navegação
     historia.value = data.data ?? data;
+    lembrancasTotal.value = historia.value.lembrancas_count ?? 0;
     document.title = `${historia.value.titulo} · Túnel do Tempo`;
   } catch (e) {
+    if (meu !== tokenCarga) return;
     historia.value = null;
+    document.title = "Túnel do Tempo";
     status.value = e.response?.status ?? null;
     erro.value = status.value !== 404;
   } finally {
-    carregando.value = false;
+    if (meu === tokenCarga) carregando.value = false;
   }
-}
-
-async function carregarVizinhas() {
-  try {
-    const r = await buscarHistoriasResumo();
-    lista.value = Array.isArray(r) ? r : (r?.data ?? []);
-  } catch {
-    lista.value = [];
-  }
+  if (meu !== tokenCarga) return;
+  await nextTick();
+  observarReacoes();
+  if (historia.value && route.hash === "#lembrancas") irParaLembrancas();
 }
 
 // Estado otimista: inverte já e desfaz se a API falhar.
 async function alternarFavorito() {
   const h = historia.value;
   const novo = !h.favoritado;
+  const antes = h.favoritos_count || 0;
   h.favoritado = novo;
+  h.favoritos_count = Math.max(0, antes + (novo ? 1 : -1));
   try {
     await (novo ? favoritarHistoria : desfavoritarHistoria)(h.uuid);
     notify.sucesso(novo ? "Guardada na sua memória." : "Removida das suas memórias.");
   } catch {
     h.favoritado = !novo;
+    h.favoritos_count = antes;
     notify.erro("Não foi possível atualizar. Tente de novo.");
   }
 }
@@ -277,7 +365,7 @@ function mudarTamanho(delta) {
 }
 
 async function compartilhar() {
-  const url = location.href;
+  const url = location.href.split("#")[0];
   const dados = { title: historia.value.titulo, text: historia.value.descricao_curta || historia.value.titulo, url };
   if (navigator.share) {
     try {
@@ -299,8 +387,31 @@ function imprimir() {
   window.print();
 }
 
+const reduzirMovimento = () =>
+  matchMedia("(prefers-reduced-motion: reduce)").matches || document.documentElement.dataset.reduzir === "1";
+
 function irPara(id) {
-  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  document.getElementById(id)?.scrollIntoView({ behavior: reduzirMovimento() ? "auto" : "smooth", block: "start" });
+}
+
+function irParaLembrancas() {
+  document.getElementById("lembrancas")?.scrollIntoView({ behavior: reduzirMovimento() ? "auto" : "smooth", block: "start" });
+}
+
+function comentar() {
+  irParaLembrancas();
+  setTimeout(() => lembrancasRef.value?.focar(), reduzirMovimento() ? 0 : 350);
+}
+
+function aoMudarLembrancas(total) {
+  if (total != null) lembrancasTotal.value = total;
+}
+
+function abrirFoto(i) {
+  // Último item do mosaico com "+N" abre a grade completa; os demais abrem direto na foto.
+  const ultimoComResto = i === 4 && fotosAlbum.value.length > 5;
+  if (ultimoComResto) mostrarGaleriaFotos.value = true;
+  else galeriaFotosRef.value?.abrirEm(i);
 }
 
 function aoRolar() {
@@ -311,27 +422,44 @@ function aoRolar() {
   progresso.value = total <= 0 ? 100 : Math.min(100, Math.max(0, (-r.top / total) * 100));
 }
 
+let observador = null;
+function observarReacoes() {
+  observador?.disconnect();
+  if (!reacoesRef.value || !("IntersectionObserver" in window)) return;
+  observador = new IntersectionObserver(
+    ([e]) => (barraFixa.value = !e.isIntersecting && e.boundingClientRect.top < 0),
+    { rootMargin: "-64px 0px 0px 0px" },
+  );
+  observador.observe(reacoesRef.value);
+}
+
 watch(
   () => route.params.uuid,
   (novo, antigo) => {
-    if (novo && novo !== antigo && route.name === "historias-show") carregar();
+    if (novo && novo !== antigo && route.name === "historias-show") {
+      window.scrollTo({ top: 0 });
+      carregar();
+    }
   },
 );
 
-onMounted(async () => {
+onMounted(() => {
   window.addEventListener("scroll", aoRolar, { passive: true });
-  await carregar();
-  await nextTick();
-  carregarVizinhas();
+  carregar();
 });
-onBeforeUnmount(() => window.removeEventListener("scroll", aoRolar));
+onBeforeUnmount(() => {
+  window.removeEventListener("scroll", aoRolar);
+  tokenCarga++;
+  observador?.disconnect();
+});
 </script>
 
 <style scoped>
 .historia-show-page {
   min-height: 100dvh;
   background: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)), url("/backgrounds/home-bg.svg") center/cover fixed;
-  padding: calc(var(--tm-navbar-h) + 24px) var(--tm-space-4) var(--tm-space-7);
+  padding-top: var(--tm-navbar-h);
+  padding-bottom: var(--tm-space-7);
 }
 .barra-leitura {
   position: fixed !important;
@@ -340,168 +468,449 @@ onBeforeUnmount(() => window.removeEventListener("scroll", aoRolar));
   right: 0;
   z-index: 999;
 }
-.painel {
-  max-width: 900px;
-  margin: 0 auto;
-  background: rgb(var(--v-theme-surface));
-  color: rgb(var(--v-theme-on-surface));
-  border-radius: var(--tm-radius-lg);
-  padding: var(--tm-space-6) var(--tm-space-7) var(--tm-space-7);
-  box-shadow: var(--tm-shadow-lg);
-}
-.migalhas {
+
+/* Barra compacta fixa. Gancho motion: .hx-barra-fixa--visivel */
+.hx-barra-fixa {
+  position: fixed;
+  top: calc(var(--tm-navbar-h) + 3px);
+  left: 0;
+  right: 0;
+  z-index: 30;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: var(--tm-space-2);
-  font-size: var(--tm-fs-sm);
-  color: var(--tm-ink-muted);
-  margin-bottom: var(--tm-space-5);
-  min-width: 0;
+  padding: 4px var(--tm-space-3);
+  background: color-mix(in srgb, var(--tm-paper) 88%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--tm-border);
+  color: var(--tm-ink);
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(-100%);
 }
-.migalhas a {
-  color: var(--tm-gold-text);
+.hx-barra-fixa--visivel {
+  visibility: visible;
+  opacity: 1;
+  transform: none;
+}
+.hx-barra-fixa__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  min-width: 44px;
+  justify-content: center;
+  padding: 0 var(--tm-space-3);
+  border: 0;
+  border-radius: var(--tm-radius-pill);
+  background: transparent;
+  color: var(--tm-ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.hx-barra-fixa__btn:hover {
+  background: var(--hx-balao);
+}
+.hx-barra-fixa__btn:focus-visible,
+.hx-acao:focus-visible {
+  outline: 3px solid #f0c86a;
+  outline-offset: -3px;
+}
+.hx-barra-fixa__titulo {
+  margin-left: var(--tm-space-3);
+  max-width: 30ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--tm-ink-muted);
+  font-size: var(--tm-fs-sm);
+}
+@media (max-width: 599px) {
+  .hx-barra-fixa__titulo {
+    display: none;
+  }
+}
+
+/* Estado sem hero (404/erro) */
+.hx-hero-esqueleto {
+  height: var(--hx-hero-h);
+  border-radius: 0;
+}
+.hx-hero-esqueleto--vazio {
+  height: auto;
+  padding: var(--tm-space-4);
+  max-width: 900px;
+  margin: 0 auto;
+}
+.hx-hero-esqueleto__migalhas a {
+  color: #fff;
   font-weight: 600;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
   gap: 4px;
   min-height: 44px;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 0 12px;
+  border-radius: var(--tm-radius-pill);
 }
-.migalhas .atual {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+
+/* Folha de leitura */
+.hx-folha {
+  position: relative;
+  z-index: 1;
+  max-width: var(--hx-feed-w);
+  margin: -40px auto 0;
+  background: var(--tm-paper);
+  color: var(--tm-ink);
+  border-radius: var(--tm-radius-lg);
+  padding: var(--tm-space-5) var(--tm-space-5) var(--tm-space-6);
+  box-shadow: var(--tm-shadow-lg);
 }
-.cabecalho {
-  text-align: center;
-  margin-bottom: var(--tm-space-5);
+.hx-folha--sem-hero {
+  margin-top: var(--tm-space-4);
 }
-.titulo {
-  font-size: var(--tm-fs-3xl);
-  margin-bottom: var(--tm-space-2);
-}
-.descricao {
-  font-size: var(--tm-fs-lg);
-  color: var(--tm-ink-muted);
-  margin: 0 auto var(--tm-space-4);
-  max-width: 60ch;
-}
-.meta {
+.hx-cabecalho__chips {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--tm-space-3);
-  justify-content: center;
   align-items: center;
+  gap: var(--tm-space-3);
+  margin-top: var(--tm-space-4);
   color: var(--tm-ink-muted);
   font-size: var(--tm-fs-sm);
 }
-.meta-item {
+.hx-cabecalho__leitura {
   display: inline-flex;
   align-items: center;
   gap: 4px;
 }
-.membros {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--tm-space-2);
-  justify-content: center;
-  align-items: center;
-  margin-top: var(--tm-space-4);
-}
-.por {
-  color: var(--tm-ink-muted);
-  font-size: var(--tm-fs-sm);
-}
-.membro {
+.hx-checkin {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  color: inherit;
-  text-decoration: none;
-  padding: 2px 10px 2px 2px;
-  border: 1px solid var(--tm-border);
+  gap: 2px;
+  padding: 0 8px;
   border-radius: var(--tm-radius-pill);
-  min-height: 36px;
+  background: var(--hx-balao);
+  margin-left: 4px;
 }
-.membro:hover {
-  background: rgb(var(--v-theme-surface-variant));
+.hx-titulo {
+  font-size: var(--tm-fs-3xl);
+  margin: var(--tm-space-3) 0 var(--tm-space-2);
+  overflow-wrap: anywhere;
 }
-.barra-acoes {
+.hx-descricao {
+  font-size: var(--tm-fs-lg);
+  color: var(--tm-ink-muted);
+  margin: 0 0 var(--tm-space-4);
+}
+.hx-secao-titulo {
+  font-size: var(--tm-fs-xl);
+  margin-bottom: var(--tm-space-3);
+}
+.hx-contagem {
+  font-size: var(--tm-fs-md);
+  color: var(--tm-ink-muted);
+  font-weight: 400;
+}
+
+/* Quem estava lá */
+.hx-presentes {
+  margin-block: var(--tm-space-5);
+}
+.hx-presentes__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 var(--tm-space-2);
+  display: flex;
+  gap: var(--tm-space-3);
+  overflow-x: auto;
+}
+.hx-presentes__lista:focus-visible {
+  outline: 3px solid #f0c86a;
+  outline-offset: 2px;
+}
+@media (min-width: 600px) {
+  .hx-presentes__lista {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+}
+.hx-presente {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 80px;
+  min-height: 44px;
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  color: var(--tm-ink);
+  text-decoration: none;
+  border-radius: var(--tm-radius-sm);
+  font: inherit;
+  cursor: pointer;
+}
+.hx-presente:hover {
+  background: var(--hx-balao);
+}
+.hx-presente:focus-visible {
+  outline: 3px solid #f0c86a;
+  outline-offset: 1px;
+}
+.hx-presente__nome {
+  font-size: var(--tm-fs-sm);
+  text-align: center;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.hx-presente__mais {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--hx-balao);
+  font-weight: 700;
+}
+
+/* Reações */
+.hx-reacoes {
+  border-block: 1px solid var(--tm-border);
+  margin-block: var(--tm-space-4);
+}
+.hx-reacoes__contadores {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--tm-space-2);
+  margin: 0;
+  padding: var(--tm-space-3) 0 var(--tm-space-2);
+  font-size: var(--tm-fs-sm);
+  color: var(--tm-ink-muted);
+  min-height: 1.5em;
+}
+.hx-reacoes__curtidas {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.hx-reacoes__acoes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid var(--tm-border);
+}
+.hx-acao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  background: transparent;
+  border: 0;
+  color: var(--tm-ink-muted);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.hx-acao + .hx-acao {
+  border-left: 1px solid var(--tm-border);
+}
+.hx-acao:hover {
+  background: var(--hx-balao);
+  color: var(--tm-ink);
+}
+.hx-acao--ativa {
+  color: var(--hx-acao-texto);
+}
+.hx-acao--ativa .hx-acao__icone,
+.hx-barra-fixa__btn.hx-acao--ativa .v-icon {
+  color: var(--hx-acao-ativa);
+}
+.hx-ferramentas {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--tm-space-2);
-  padding: var(--tm-space-3) 0;
-  border-block: 1px solid var(--tm-border);
+  gap: var(--tm-space-1);
   margin-bottom: var(--tm-space-5);
 }
-.indice {
-  background: rgb(var(--v-theme-surface-variant));
+
+.hx-indice {
+  background: var(--hx-balao);
   border-radius: var(--tm-radius-md);
-  padding: var(--tm-space-4);
+  padding: var(--tm-space-3) var(--tm-space-4);
   margin-bottom: var(--tm-space-5);
 }
-.indice-titulo {
-  font-size: var(--tm-fs-md);
-  margin-bottom: var(--tm-space-2);
+.hx-indice summary {
+  cursor: pointer;
+  font-weight: 700;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
 }
-.indice ul {
+.hx-indice ul {
   list-style: none;
   padding: 0;
   margin: 0;
 }
-.indice li.n2 {
+.hx-indice li.n2 {
   padding-left: var(--tm-space-4);
 }
-.indice li.n3 {
+.hx-indice li.n3 {
   padding-left: var(--tm-space-6);
 }
-.indice a {
+.hx-indice a {
   color: var(--tm-gold-text);
   display: inline-block;
-  padding: 4px 0;
+  padding: 8px 0;
 }
-.vizinhas {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--tm-space-4);
-  margin-top: var(--tm-space-7);
-  padding-top: var(--tm-space-5);
-  border-top: 1px solid var(--tm-border);
+
+/* Imagens embutidas no texto com moldura de foto */
+.hx-conteudo :deep(img) {
+  border: 6px solid #fffdf5;
+  border-radius: 4px;
+  box-shadow: var(--tm-shadow-sm);
+  filter: var(--hx-filtro-foto);
+  max-width: 100%;
+  height: auto;
 }
-.viz {
+
+/* Vídeos e músicas */
+.hx-videos,
+.hx-musicas {
+  margin-block: var(--tm-space-5);
+}
+.hx-videos__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 var(--tm-space-2);
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: var(--tm-space-3) var(--tm-space-4);
+  gap: var(--tm-space-3);
+  overflow-x: auto;
+}
+.hx-videos__lista:focus-visible {
+  outline: 3px solid #f0c86a;
+}
+.hx-video {
+  width: 200px;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  padding: 0;
+  border-radius: var(--tm-radius-sm);
+  background: var(--hx-ano-selo);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.hx-video:focus-visible {
+  outline: 3px solid #f0c86a;
+  outline-offset: 2px;
+}
+.hx-video__play {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(20, 15, 5, 0.75);
+  color: #fff;
+}
+.hx-video__duracao {
+  position: absolute;
+  z-index: 1;
+  right: 8px;
+  bottom: 8px;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: rgba(20, 15, 5, 0.8);
+  color: #fff;
+  font-size: var(--tm-fs-xs);
+}
+.hx-musica {
+  display: flex;
+  align-items: center;
+  gap: var(--tm-space-3);
+  width: 100%;
+  min-height: 56px;
+  padding: var(--tm-space-2) var(--tm-space-4);
   border: 1px solid var(--tm-border);
   border-radius: var(--tm-radius-md);
-  color: inherit;
-  text-decoration: none;
+  background: var(--hx-balao);
+  color: var(--tm-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
-.viz:hover {
-  background: rgb(var(--v-theme-surface-variant));
+.hx-musica:focus-visible {
+  outline: 3px solid #f0c86a;
+  outline-offset: 2px;
 }
-.viz.prox {
-  text-align: right;
-  grid-column: 2;
+.hx-musica__texto {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
 }
-.dir {
-  color: var(--tm-gold-text);
-  font-size: var(--tm-fs-sm);
-  font-weight: 600;
+.hx-musica__texto small {
+  color: var(--tm-ink-muted);
 }
-@media (max-width: 600px) {
-  .painel {
+.hx-musica__mais {
+  color: var(--tm-ink-muted);
+  font-weight: 700;
+}
+
+/* Carregando */
+.hx-carregando {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tm-space-3);
+}
+.hx-carregando__autor {
+  display: flex;
+  align-items: center;
+  gap: var(--tm-space-3);
+}
+.hx-carregando__avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+.hx-carregando__linhas {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.hx-carregando__linha {
+  display: block;
+  height: 14px;
+  width: 100%;
+}
+.hx-carregando__linha--curta {
+  width: 40%;
+}
+.hx-carregando__titulo {
+  display: block;
+  height: 40px;
+  width: 80%;
+}
+
+@media (max-width: 599px) {
+  .hx-folha {
+    margin-top: -24px;
+    border-radius: var(--tm-radius-md);
     padding: var(--tm-space-4);
   }
-  .vizinhas {
-    grid-template-columns: 1fr;
-  }
-  .viz.prox {
-    grid-column: 1;
-  }
-  .barra-acoes .tamanho {
+  .hx-ferramentas__tamanho {
     display: none;
   }
 }
@@ -510,14 +919,17 @@ onBeforeUnmount(() => window.removeEventListener("scroll", aoRolar));
     background: #fff;
     padding: 0;
   }
-  .painel {
+  .hx-folha {
     box-shadow: none;
+    margin: 0;
     padding: 0;
     background: #fff;
     color: #000;
+    max-width: none;
   }
-  .barra-acoes,
-  .migalhas {
+  .hx-hero-esqueleto,
+  .hx-reacoes,
+  .hx-ferramentas {
     display: none;
   }
 }
