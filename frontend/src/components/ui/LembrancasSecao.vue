@@ -1,14 +1,15 @@
 <template>
-  <section class="lembrancas" aria-labelledby="lemb-titulo">
+  <section id="lembrancas" ref="raizRef" class="lembrancas" :class="{ 'lembrancas--comentarios': comentarios }" aria-labelledby="lemb-titulo">
     <h2 id="lemb-titulo" class="tm-title">
-      Deixar uma lembrança
+      {{ comentarios ? "Comentários" : "Deixar uma lembrança" }}
       <span v-if="lista.total.value != null" class="contador">({{ lista.total.value }})</span>
     </h2>
 
     <form novalidate @submit.prevent="enviar">
       <v-textarea
+        ref="campoRef"
         v-model="texto"
-        label="Escreva uma lembrança"
+        :label="comentarios ? 'Escreva uma lembrança…' : 'Escreva uma lembrança'"
         rows="3"
         auto-grow
         counter="2000"
@@ -17,18 +18,20 @@
         :disabled="enviando"
       />
       <div class="acoes">
-        <v-btn type="submit" variant="flat" color="primary" :loading="enviando" :disabled="enviando">Deixar lembrança</v-btn>
+        <v-btn type="submit" variant="flat" color="primary" :loading="enviando" :disabled="enviando">{{ comentarios ? "Publicar" : "Deixar lembrança" }}</v-btn>
       </div>
     </form>
 
     <TmSkeletonGrid v-if="lista.carregando.value && !lista.itens.value.length" :quantidade="2" tipo="list-item-two-line" minimo="100%" />
     <TmErrorState v-else-if="lista.erro.value && !lista.itens.value.length" texto="Não conseguimos carregar as lembranças." @retry="lista.recarregar" />
-    <p v-else-if="lista.vazio.value" class="vazio">Ainda não há lembranças. Seja o primeiro a deixar uma.</p>
+    <p v-else-if="lista.vazio.value" class="vazio">
+      {{ comentarios ? "Ninguém lembrou de nada ainda. Seja o primeiro." : "Ainda não há lembranças. Seja o primeiro a deixar uma." }}
+    </p>
 
     <ul v-else class="itens">
       <li v-for="l in lista.itens.value" :key="l.uuid" class="item">
         <div class="topo">
-          <AvatarUsuario :nome="l.usuario?.nome" :size="32" />
+          <AvatarUsuario :nome="l.usuario?.nome" :src="l.usuario?.foto_url" :size="32" />
           <div class="quem">
             <strong>{{ l.usuario?.nome || "Alguém da rua" }}</strong>
             <time :datetime="l.created_at">{{ dataRelativa(l.created_at) }}</time>
@@ -50,13 +53,14 @@
     </ul>
 
     <div v-if="lista.temMais.value" class="text-center mt-3">
-      <v-btn variant="tonal" :loading="lista.carregando.value" @click="lista.carregarProxima()">Ver mais lembranças</v-btn>
+      <v-btn variant="tonal" :loading="lista.carregando.value" @click="lista.carregarProxima()">{{ comentarios ? "Ver comentários anteriores" : "Ver mais lembranças" }}</v-btn>
     </div>
   </section>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, nextTick, onMounted } from "vue";
+import { animarEsquina } from "@/composables/useMovimentoEsquina";
 import { listarLembrancas, criarLembranca, excluirLembranca } from "@/services/lembranca.service";
 import { useListaPaginada } from "@/composables/useListaPaginada";
 import { useApiError } from "@/composables/useApiError";
@@ -70,6 +74,8 @@ import TmErrorState from "@/components/ui/TmErrorState.vue";
 const props = defineProps({
   /** uuid da história; vazio = página da homenagem */
   historiaUuid: { type: String, default: null },
+  /** visual e rótulos de rede social (página da história) */
+  comentarios: { type: Boolean, default: false },
 });
 const emit = defineEmits(["mudou"]);
 
@@ -77,6 +83,8 @@ const { tratar } = useApiError();
 const notify = useNotify();
 const { confirmar } = useConfirm();
 
+const campoRef = ref(null);
+const raizRef = ref(null);
 const texto = ref("");
 const erro = ref("");
 const enviando = ref(false);
@@ -94,6 +102,10 @@ async function enviar() {
   try {
     const nova = await criarLembranca(props.historiaUuid, t);
     lista.itens.value.unshift(nova);
+    // balão novo desliza e expande (300ms); só transform/opacity
+    nextTick(() =>
+      animarEsquina(raizRef.value?.querySelector(".item"), [{ opacity: 0, transform: "translateY(-8px) scaleY(0.85)", transformOrigin: "top center" }, { opacity: 1, transform: "none", transformOrigin: "top center" }], { duration: 300, easing: "ease-out" }),
+    );
     if (lista.total.value != null) lista.total.value++;
     texto.value = "";
     notify.sucesso("Lembrança guardada.");
@@ -118,6 +130,8 @@ async function excluir(l) {
     tratar(e);
   }
 }
+
+defineExpose({ focar: () => campoRef.value?.focus() });
 
 onMounted(() => lista.carregarProxima());
 </script>
@@ -172,6 +186,16 @@ onMounted(() => lista.carregarProxima());
 .quem time {
   font-size: var(--tm-fs-sm);
   color: var(--tm-ink-muted);
+}
+.lembrancas--comentarios {
+  border-top: 0;
+  margin-top: var(--tm-space-6);
+  scroll-margin-top: calc(var(--tm-navbar-h) + 72px);
+}
+.lembrancas--comentarios .item {
+  background: var(--hx-balao, rgb(var(--v-theme-surface-variant)));
+  border: 0;
+  border-radius: var(--tm-radius-md) var(--tm-radius-md) var(--tm-radius-md) var(--tm-radius-xs);
 }
 .texto {
   margin: var(--tm-space-2) 0 0;
