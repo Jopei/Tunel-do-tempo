@@ -1,0 +1,339 @@
+/* Fotos e Vídeos v2: tokens e utilitários. Só dentro de .fv-era (requer historias-era.css). */
+.fv-era {
+  --fv-moldura: 6px solid #fff;
+  --fv-player-bg: #14110b;
+  --fv-player-barra: rgba(0, 0, 0, 0.72);
+  --fv-player-prog: var(--tm-gold);
+  --fv-cabeca-h: 64px;
+  --fv-capa-album: 4 / 3;
+  --fv-scrim: linear-gradient(to top, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0) 100%);
+}
+[data-tema="escuro"] .fv-era {
+  --fv-moldura: 6px solid rgba(255, 255, 255, 0.88);
+}
+@media (max-width: 599px) {
+  .fv-era {
+    --fv-cabeca-h: 52px;
+  }
+}
+
+/* Filtro de foto antiga: desligado por padrão; .fv-filtro-on na raiz (ou no .lb) liga.
+   Gancho motion 7/9: a transição de filter/opacity abaixo faz o crossfade. */
+.fv-era .fv-img,
+.fv-era .hx-foto__img {
+  filter: none;
+  transition: filter 250ms var(--tm-ease);
+}
+.fv-era.fv-filtro-on .fv-img,
+.fv-era.fv-filtro-on .hx-foto__img,
+.fv-era .fv-filtro-on .fv-img {
+  filter: var(--hx-filtro-foto);
+}
+.fv-vinheta {
+  position: relative;
+}
+.fv-vinheta::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--hx-vinheta);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 250ms var(--tm-ease);
+}
+.fv-filtro-on .fv-vinheta::after,
+.fv-vinheta.fv-filtro-on::after {
+  opacity: 1;
+}
+
+/* Moldura de foto revelada (capas, destaques) */
+.fv-moldura {
+  border: var(--fv-moldura);
+  border-radius: 12px;
+  box-shadow: var(--tm-shadow-md);
+  overflow: hidden;
+  background: var(--hx-ano-suave);
+}
+
+/* Capítulo de ano (gancho motion 3: .fv-cap entrando; .fv-cap__selo "pina"; .fv-cap__filete cresce) */
+.fv-cap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 8px 8px 14px;
+  margin-top: 8px;
+  position: relative;
+  scroll-margin-top: calc(var(--tm-navbar-h) + 56px);
+}
+.fv-cap__filete {
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 4px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--hx-ano-cor);
+  transform-origin: top;
+}
+.fv-cap .hx-selo {
+  flex: none;
+}
+.fv-cap__titulo {
+  margin: 0;
+  font-family: var(--tm-font-title);
+  font-weight: 800;
+  font-size: var(--tm-fs-2xl);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--tm-ink);
+}
+.fv-cap__titulo:focus {
+  outline: none;
+}
+.fv-cap__titulo:focus-visible {
+  outline: 3px solid var(--tm-focus);
+  outline-offset: 4px;
+}
+.fv-cap__sub {
+  margin: 2px 0 0;
+  font-size: var(--tm-fs-sm);
+  color: var(--tm-ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+.fv-cap.fv-pulso .fv-cap__titulo {
+  /* gancho motion 2: pulso de 400ms no h2 de destino (classe aplicada após a rolagem) */
+  display: inline-block;
+}
+@media (max-width: 599px) {
+  .fv-cap {
+    gap: 10px;
+    padding-left: 8px;
+    padding-bottom: 12px;
+  }
+  .fv-cap .hx-selo {
+    min-width: 44px;
+    height: 44px;
+    font-size: 0.9rem;
+  }
+  .fv-cap__filete {
+    left: 8px;
+    right: 8px;
+    top: auto;
+    bottom: 0;
+    width: auto;
+    height: 3px;
+    transform-origin: left;
+  }
+}
+
+/* Tiras horizontais com scroll-snap (destaques, prateleiras) */
+.fv-tira {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  padding: 4px 4px 12px;
+  scrollbar-width: thin;
+}
+.fv-tira > * {
+  flex: none;
+  scroll-snap-align: start;
+}
+.fv-tira:focus-visible {
+  outline: 3px solid var(--tm-focus);
+  outline-offset: 2px;
+}
+
+/* Estado vazio temático: moldura rotacionada -3° (gancho motion 16: .fv-vazio-moldura) */
+.fv-vazio-moldura {
+  display: inline-grid;
+  place-items: center;
+  width: 96px;
+  height: 96px;
+  margin-bottom: 12px;
+  border: var(--fv-moldura);
+  border-radius: 8px;
+  background: var(--hx-ano-suave);
+  box-shadow: var(--tm-shadow-md);
+  transform: rotate(-3deg);
+}
+
+.fv-era .fv-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fv-era .fv-img,
+  .fv-era .hx-foto__img,
+  .fv-vinheta::after {
+    transition: none;
+  }
+}
+html[data-reduzir="1"] .fv-era .fv-img,
+html[data-reduzir="1"] .fv-era .hx-foto__img,
+html[data-reduzir="1"] .fv-vinheta::after {
+  transition: none;
+}
+
+/* ===== Motion v2 (momentos 1-3, 6, 8, 10, 11, 13-16). Só transform/opacity; desligado com reduced-motion ou data-reduzir. ===== */
+@media (prefers-reduced-motion: no-preference) {
+  /* 1 Destaques entrando: tiras sobem 12px em fade; cartões em cascata (máx. 6 x 50ms) */
+  html:not([data-reduzir="1"]) .fv-dest-corpo .fv-tira {
+    animation: fv-m-sobe 350ms var(--tm-ease) backwards;
+  }
+  html:not([data-reduzir="1"]) .fv-dest-corpo .fv-tira > * {
+    animation: fv-m-surge 350ms var(--tm-ease) backwards;
+    animation-delay: 300ms;
+  }
+  html:not([data-reduzir="1"]) .fv-dest-corpo .fv-tira > *:nth-child(1) { animation-delay: 0ms; }
+  html:not([data-reduzir="1"]) .fv-dest-corpo .fv-tira > *:nth-child(2) { animation-delay: 50ms; }
+  html:not([data-reduzir="1"]) .fv-dest-corpo .fv-tira > *:nth-child(3) { animation-delay: 100ms; }
+  html:not([data-reduzir="1"]) .fv-dest-corpo .fv-tira > *:nth-child(4) { animation-delay: 150ms; }
+  html:not([data-reduzir="1"]) .fv-dest-corpo .fv-tira > *:nth-child(5) { animation-delay: 200ms; }
+  html:not([data-reduzir="1"]) .fv-dest-corpo .fv-tira > *:nth-child(6) { animation-delay: 250ms; }
+
+  /* 2 Memórias por ano: o selo e o h2 do capítulo de destino pulsam 400ms (classe fv-pulso vem da rolagem) */
+  html:not([data-reduzir="1"]) .fv-cap.fv-pulso .fv-cap__titulo,
+  html:not([data-reduzir="1"]) .fv-cap.fv-pulso .fv-cap__selo {
+    animation: fv-m-pulso 400ms var(--tm-ease);
+  }
+
+  /* 3 Capítulo entra no viewport (is-visivel via IntersectionObserver em FotosGrade): selo pina, filete cresce */
+  html:not([data-reduzir="1"]) .fv-cap:not(.is-visivel) .fv-cap__selo {
+    opacity: 0;
+  }
+  html:not([data-reduzir="1"]) .fv-cap:not(.is-visivel) .fv-cap__filete {
+    transform: scaleY(0);
+  }
+  html:not([data-reduzir="1"]) .fv-cap.is-visivel .fv-cap__selo {
+    animation: fv-m-pina 450ms var(--tm-ease) both;
+  }
+  html:not([data-reduzir="1"]) .fv-cap.is-visivel .fv-cap__filete {
+    animation: fv-m-filete 450ms var(--tm-ease) both;
+  }
+
+  /* 6 Álbuns entrando: cascata de capas (40ms) */
+  html:not([data-reduzir="1"]) .album-item {
+    animation: fv-m-sobe 300ms var(--tm-ease) backwards;
+    animation-delay: calc(var(--i, 0) * 40ms);
+  }
+
+  /* 8 Lightbox: itens do post entram em fade escalonado (40ms) */
+  html:not([data-reduzir="1"]) .lb-post-item {
+    animation: fv-m-surge 250ms var(--tm-ease) backwards;
+    animation-delay: calc(var(--i, 0) * 40ms);
+  }
+
+  /* 10 Miniatura de vídeo: play central .9 -> 1; barra sobe 4px; progresso varre no hover (decorativo) */
+  html:not([data-reduzir="1"]) .video-card .video-play-central {
+    transform: scale(0.9);
+    transition:
+      opacity var(--tm-dur-fast) var(--tm-ease),
+      transform 200ms var(--tm-ease);
+  }
+  html:not([data-reduzir="1"]) .video-card:hover .video-play-central,
+  html:not([data-reduzir="1"]) .video-card:focus-within .video-play-central,
+  html:not([data-reduzir="1"]) .video-card.sem-poster .video-play-central {
+    transform: scale(1);
+  }
+  html:not([data-reduzir="1"]) .video-card .video-barra-falsa {
+    transition: transform 200ms var(--tm-ease);
+  }
+  html:not([data-reduzir="1"]) .video-card:hover .video-barra-falsa {
+    transform: translateY(-4px);
+  }
+  html:not([data-reduzir="1"]) .video-card .video-prog-fill {
+    transition: transform 300ms var(--tm-ease);
+  }
+  html:not([data-reduzir="1"]) .video-card:hover .video-prog-fill {
+    transform: scaleX(1);
+    transition: transform 1200ms linear;
+  }
+
+  /* 11 Prateleira Por ano: cartões deslizam 16px em fade (50ms) */
+  html:not([data-reduzir="1"]) .fv-prat-item {
+    animation: fv-m-sobe-16 350ms var(--tm-ease) backwards;
+    animation-delay: calc(var(--i, 0) * 50ms);
+  }
+
+  /* 13 Preview de vídeo: poster .96 -> 1 + fade ao abrir/trocar (a troca em si é o Transition vprev-troca) */
+  html:not([data-reduzir="1"]) .vprev-moldura > * {
+    animation: fv-m-poster 250ms var(--tm-ease) backwards;
+  }
+
+  /* 14 Player: faixa escura expande da altura 0 (scaleY) e o player faz fade */
+  html:not([data-reduzir="1"]) .vp-faixa {
+    transform-origin: top;
+    animation: fv-m-faixa 400ms var(--tm-ease) backwards;
+  }
+  html:not([data-reduzir="1"]) .vp-player-caixa {
+    animation: fv-m-surge 400ms var(--tm-ease) 100ms backwards;
+  }
+
+  /* 15 Assistir a seguir: sobe 12px em 300ms */
+  html:not([data-reduzir="1"]) .vp-proximo-enter-active {
+    transition:
+      opacity 300ms var(--tm-ease),
+      transform 300ms var(--tm-ease);
+  }
+
+  /* 16 Estado vazio: fade + rotação -6° -> -3° */
+  html:not([data-reduzir="1"]) .fv-vazio-moldura {
+    animation: fv-m-vazio 400ms var(--tm-ease) backwards;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) and (max-width: 599px) {
+  html:not([data-reduzir="1"]) .fv-cap:not(.is-visivel) .fv-cap__filete {
+    transform: scaleX(0);
+  }
+  html:not([data-reduzir="1"]) .fv-cap.is-visivel .fv-cap__filete {
+    animation-name: fv-m-filete-h;
+  }
+}
+
+@keyframes fv-m-sobe {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes fv-m-sobe-16 {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes fv-m-surge {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes fv-m-pulso {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+}
+@keyframes fv-m-pina {
+  from { opacity: 0; transform: scale(1.1); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes fv-m-filete {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+@keyframes fv-m-filete-h {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+@keyframes fv-m-poster {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes fv-m-faixa {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+@keyframes fv-m-vazio {
+  from { opacity: 0; transform: rotate(-6deg); }
+  to { opacity: 1; transform: rotate(-3deg); }
+}

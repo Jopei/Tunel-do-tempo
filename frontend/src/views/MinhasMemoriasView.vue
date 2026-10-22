@@ -1,5 +1,5 @@
 <template>
-  <section class="pag tm-immersive">
+  <section class="pag tm-immersive historias-era">
     <div class="painel">
       <header class="cabeca">
         <h1 class="tm-title">Minhas memórias</h1>
@@ -19,7 +19,7 @@
 
       <ul v-else class="grid">
         <li v-for="h in lista.itens.value" :key="h.uuid" class="item">
-          <HistoriaCard :historia="{ ...h, usuarios: h.usuarios ?? [] }" />
+          <HistoriaCard :historia="{ ...h, usuarios: h.usuarios ?? [], favoritado: true }" compacto @curtir="descurtir(h)" @compartilhar="compartilhar(h)" />
         </li>
       </ul>
 
@@ -33,7 +33,9 @@
 
 <script setup>
 import { onMounted } from "vue";
-import { listarFavoritos } from "@/services/favorito.service";
+import { listarFavoritos, desfavoritarHistoria } from "@/services/favorito.service";
+import { useNotify } from "@/composables/useNotify";
+import "@/assets/historias-era.css";
 import { useListaPaginada } from "@/composables/useListaPaginada";
 import HistoriaCard from "@/components/historias/HistoriaCard.vue";
 import TmSkeletonGrid from "@/components/ui/TmSkeletonGrid.vue";
@@ -41,6 +43,28 @@ import TmErrorState from "@/components/ui/TmErrorState.vue";
 import TmEmptyState from "@/components/ui/TmEmptyState.vue";
 
 const lista = useListaPaginada((page) => listarFavoritos({ page, per_page: 15 }));
+const notify = useNotify();
+
+// Nesta lista todo item está curtido: "Curtido" remove das memórias.
+async function descurtir(h) {
+  try {
+    await desfavoritarHistoria(h.uuid);
+    lista.itens.value = lista.itens.value.filter((i) => i.uuid !== h.uuid);
+    notify.sucesso("Removida das suas memórias.");
+  } catch {
+    notify.erro("Não foi possível atualizar. Tente de novo.");
+  }
+}
+
+async function compartilhar(h) {
+  try {
+    await navigator.clipboard.writeText(`${location.origin}/historias/${h.uuid}`);
+    notify.sucesso("Link copiado.");
+  } catch {
+    notify.erro("Não foi possível copiar o link.");
+  }
+}
+
 onMounted(() => lista.carregarProxima());
 </script>
 
