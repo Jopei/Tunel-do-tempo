@@ -33,6 +33,7 @@ class Usuario extends Authenticatable
         UsuarioMapping::ANIVERSARIO,
         UsuarioMapping::TELEFONE,
         UsuarioMapping::DESCRICAO,
+        UsuarioMapping::SLUG,
     ];
 
     protected $dates = [
@@ -60,7 +61,27 @@ class Usuario extends Authenticatable
             UsuarioFotoMapping::MODEL_TABLE_NAME,
             UsuarioFotoMapping::USUARIO_ID,
             UsuarioFotoMapping::FOTO_ID
-        )->withTimestamps()->withTrashed();
+        )->withTimestamps()->withTrashed()->wherePivotNull(UsuarioFotoMapping::DELETED_AT);
+    }
+
+    /**
+     * Unica fonte de verdade da foto de perfil atual: a Foto de tipo Perfil (nao excluida) com o
+     * vinculo ativo mais recente. Requer fotos.tipo carregado.
+     */
+    public function fotoPerfilAtual(): ?Foto
+    {
+        return $this->fotos
+            ->filter(fn ($f) => !$f->trashed() && $f->tipo?->nome === \App\Enums\TipoImagemEnum::PERFIL->value)
+            ->sortByDesc(fn ($f) => sprintf('%s-%010d', $f->pivot?->created_at?->format('YmdHis') ?? '0', $f->id))
+            ->first();
+    }
+
+    /** URL da foto de perfil atual (com ?v= para quebrar cache) ou null. */
+    public function fotoPerfilUrl(): ?string
+    {
+        $foto = $this->fotoPerfilAtual();
+
+        return $foto ? route('api.fotos.show', ['uuid' => $foto->uuid, 'v' => $foto->updated_at?->timestamp]) : null;
     }
 
     public function musicas()
@@ -110,6 +131,16 @@ class Usuario extends Authenticatable
         } else {
             $this->attributes['senha'] = $value;
         }
+    }
+
+    public function albuns()
+    {
+        return $this->hasMany(Album::class, 'usuario_cadastrou_id', UsuarioMapping::ID);
+    }
+
+    public function videoPastas()
+    {
+        return $this->hasMany(VideoPasta::class, 'usuario_cadastrou_id', UsuarioMapping::ID);
     }
 
     public function lembrancas()

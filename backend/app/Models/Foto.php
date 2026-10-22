@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Mapping\AlbumFotoMapping;
 use App\Mapping\FotoMapping;
 use App\Mapping\TipoImagemMapping;
 use App\Mapping\HistoriaFotoMapping;
@@ -28,6 +29,16 @@ class Foto extends Model
         FotoMapping::TIPO_IMAGEM_ID,
         FotoMapping::USUARIO_CADASTROU_ID,
         FotoMapping::EXTERNAL_LINK,
+        FotoMapping::DATA_FOTO,
+        FotoMapping::LARGURA,
+        FotoMapping::ALTURA,
+        FotoMapping::THUMBNAIL_PATH,
+    ];
+
+    protected $casts = [
+        FotoMapping::DATA_FOTO => 'date:Y-m-d',
+        FotoMapping::LARGURA => 'integer',
+        FotoMapping::ALTURA => 'integer',
     ];
 
     protected $dates = [
@@ -35,6 +46,11 @@ class Foto extends Model
         FotoMapping::UPDATED_AT,
         FotoMapping::DELETED_AT,
     ];
+
+    public function cadastradoPor()
+    {
+        return $this->belongsTo(Usuario::class, 'usuario_cadastrou_id', 'id')->withTrashed();
+    }
 
     public function tipo()
     {
@@ -53,6 +69,16 @@ class Foto extends Model
             HistoriaFotoMapping::FOTO_ID,
             HistoriaFotoMapping::HISTORIA_ID
         )->withTimestamps()->withTrashed();
+    }
+
+    public function albuns()
+    {
+        return $this->belongsToMany(
+            Album::class,
+            AlbumFotoMapping::MODEL_TABLE_NAME,
+            AlbumFotoMapping::FOTO_ID,
+            AlbumFotoMapping::ALBUM_ID
+        )->withPivot(AlbumFotoMapping::ORDEM)->withTimestamps();
     }
 
     public function usuarios()
