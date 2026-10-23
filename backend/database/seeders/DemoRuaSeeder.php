@@ -56,14 +56,14 @@ class DemoRuaSeeder extends Seeder
 
     public function run(): void
     {
-        if (app()->environment('production')) {
-            $this->command?->error('DemoRuaSeeder recusado: ambiente de producao.');
+        if (!app()->environment(['local', 'testing'])) {
+            $this->command?->error('DemoRuaSeeder recusado: somente local/testing.');
 
             return;
         }
 
         DB::transaction(function () {
-            env('DEMO_REMOVER') ? $this->remover() : $this->criar();
+            filter_var(getenv('DEMO_REMOVER'), FILTER_VALIDATE_BOOL) ? $this->remover() : $this->criar();
         });
     }
 

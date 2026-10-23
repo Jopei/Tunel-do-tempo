@@ -17,6 +17,7 @@ use App\Http\Resources\UsuarioListResource;
 use App\Http\Resources\UsuarioResource;
 use App\Http\Resources\UsuarioAuthResource;
 use Illuminate\Http\JsonResponse;
+use App\Exceptions\ChaveInvalidaException;
 use Throwable;
 
 class UsuarioController extends Controller
@@ -36,9 +37,13 @@ class UsuarioController extends Controller
                 new UsuarioResource($usuario),
                 201
             );
+        } catch (ChaveInvalidaException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
         } catch (Throwable $e) {
+            report($e);
+
             return response()->json([
-                'message' => $e->getMessage()
+                'message' => 'Não foi possível concluir o cadastro.'
             ], 422);
         }
     }

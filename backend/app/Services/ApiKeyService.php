@@ -6,7 +6,7 @@ use App\DTO\CreateApiKeyDTO;
 use App\Repositories\ApiKeyRepository;
 use App\Models\ApiKey;
 use Illuminate\Support\Str;
-use RuntimeException;
+use Illuminate\Auth\Access\AuthorizationException;
 
 class ApiKeyService
 {
@@ -14,14 +14,19 @@ class ApiKeyService
         protected ApiKeyRepository $repository
     ) {}
 
-    public function gerar(CreateApiKeyDTO $dto): array
+    public function gerar(CreateApiKeyDTO $dto, bool $confiavel = false): array
     {
         $hashAntiga = hash('sha256', $dto->apiKeyAntiga);
         $existemChaves = $this->repository->existemChaves();
         $chaveValida = $this->repository->buscarAtivaPorHashEOrigem($hashAntiga, $dto->origem->value);
 
-        if ($existemChaves && !$chaveValida) {
-            throw new RuntimeException('API Key antiga inválida ou inativa');
+        // Primeira chave (bootstrap): so pelo comando artisan (confiavel) ou em ambiente local/testing.
+        if (!$existemChaves && !$confiavel && !app()->environment(['local', 'testing'])) {
+            throw new AuthorizationException('Geração da primeira API Key só via php artisan api-keys:gerar.');
+        }
+
+        if ($existemChaves && !$confiavel && !$chaveValida) {
+            throw new AuthorizationException('API Key antiga inválida ou inativa');
         }
 
         $this->repository->desativarPorOrigem($dto->origem->value);

@@ -27,7 +27,7 @@ use App\Http\Controllers\MembroController;
 | Todas as rotas aqui são stateless e protegidas por API Key
 */
 
-Route::post('/api-keys/gerar', [ApiKeyController::class, 'gerar']);
+Route::post('/api-keys/gerar', [ApiKeyController::class, 'gerar'])->middleware('throttle:5,1');
 // Rotas literais de login antes dos '/{uuid}' publicos (senao 'anos'/'neste-dia' casariam como uuid).
 Route::middleware(['api.key.auth', 'auth:sanctum'])->group(function () {
     Route::get('/videos/anos', [VideoController::class, 'anos'])->name('api.videos.anos');
@@ -50,8 +50,8 @@ Route::get('/public/historias/recentes', [PublicoController::class, 'historiasRe
 
 
 Route::middleware(['api.key.auth'])->group(function () {
-    Route::post('/login', [AuthController::class, 'login']);
-    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
+    Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 
     Route::middleware('throttle:senha')->group(function () {
         Route::post('/esqueci-senha', [SenhaController::class, 'esqueci'])->name('senha.esqueci');
@@ -61,7 +61,7 @@ Route::middleware(['api.key.auth'])->group(function () {
     Route::get('/historias/limite/{limite?}', [HistoriaController::class, 'buscarHistoriasPorLimite'])->name('historias.por.limite');
 
     Route::prefix('cadastrar')->group(function () {
-        Route::post('/usuarios', [UsuarioController::class, 'store'])->name('api.usuarios.store');
+        Route::post('/usuarios', [UsuarioController::class, 'store'])->middleware('throttle:5,1')->name('api.usuarios.store');
     });
 
 

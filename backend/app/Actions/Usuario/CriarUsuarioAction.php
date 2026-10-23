@@ -9,7 +9,9 @@ use App\Services\FotoService;
 use App\DTO\UsuarioCreateDTO;
 use App\DTO\FotoCreateDTO;
 use Illuminate\Support\Facades\DB;
-use Exception;
+use App\Enums\TipoUsuarioEnum;
+use App\Models\TipoUsuario;
+use App\Exceptions\ChaveInvalidaException;
 
 class CriarUsuarioAction
 {
@@ -28,14 +30,22 @@ class CriarUsuarioAction
                 ->first();
 
             if (!$chave) {
-                throw new Exception('Chave inválida ou já utilizada.');
+                throw new ChaveInvalidaException('Chave inválida ou já utilizada.');
+            }
+
+            // Papel definido pelo servidor: a tabela `chaves` nao tem papel associado, entao todo
+            // convite cria MEMBRO_RUA. Promocao a ADM so por um administrador existente.
+            $tipoUsuarioId = TipoUsuario::where('nome', TipoUsuarioEnum::MEMBRO_RUA->value)->value('id');
+
+            if (!$tipoUsuarioId) {
+                throw new \RuntimeException('Tipo de usuário padrão não configurado.');
             }
 
             $usuarioDTO = new UsuarioCreateDTO(
                 nome: $data['nome'],
                 email: $data['email'],
                 senha: $data['senha'],
-                tipoUsuarioId: $data['tipo_usuario_id'],
+                tipoUsuarioId: $tipoUsuarioId,
                 aniversario: $data['aniversario'] ?? null,
                 telefone: $data['telefone'] ?? null,
                 descricao: $data['descricao'] ?? null,

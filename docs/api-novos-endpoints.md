@@ -217,6 +217,16 @@ Fallback: se o membro ainda não tem slug, o `{slug}` pode ser o **uuid** dele (
 - Correções posteriores: `GET /videos/anos` aceita os mesmos filtros de `GET /videos` (`pasta_uuid` incl. `raiz`, `todas=1`, `q`; inválido -> 422), sem parâmetros igual a antes. `GET /membros/{slug}` agora devolve `capa_url`, `favoritos_count`, `lembrancas_count` e `favoritado` reais em `historias[]` e `historia_pessoal` (antes zerados/null). `anterior` de uma história sem `data_historia` em `GET /historias/{uuid}` segue a ordem do feed asc (datadas, depois nulas por id); hoje `data_historia` é NOT NULL no banco, então é ramo defensivo (testado com a coluna nullable só no teste).
 - Pendência (já listada na rodada 6): `videos.path` NOT NULL impede vídeo só com `external_link`.
 
+### Rodada 9 — segurança (mudanças de comportamento)
+- **Cadastro** (`POST /cadastrar/usuarios`): `tipo_usuario_id` enviado pelo cliente é **ignorado**; todo convite cria `MEMBRO_RUA` (a tabela `chaves` não tem papel). Resposta igual. Promoção a ADM só por admin/banco. Erro genérico -> 422 `Não foi possível concluir o cadastro.`; chave errada segue `Chave inválida ou já utilizada.`
+- **Rate limit** -> 429 padrão: `POST /cadastrar/usuarios` 5/min por IP; `POST /login` 5/min por IP+e-mail (`login`); `POST /api-keys/gerar` 5/min.
+- **Logout** (`POST /logout`) agora exige `Authorization: Bearer` (sem token -> 401) e revoga o token atual (antes só `Auth::logout()`, sem efeito). O frontend deve limpar o token local e tratar 401 no logout como já deslogado.
+- **Expiração do token Sanctum:** 30 dias (`config/sanctum.php`, env `SANCTUM_TOKEN_EXPIRATION` em minutos); expirado -> 401. Todos os tokens existentes passam a valer por essa regra.
+- **API Key:** `/api-keys/gerar` sem `dd()`; chave antiga inválida -> 403. Primeira chave (nenhuma existente) só em ambiente local/testing; em produção use `php artisan api-keys:gerar {API|TESTER} --nome=...`.
+- **Foto de perfil** (`POST /usuarios/{uuid}/foto-perfil`): só jpg/png, 2MB, máx 12000px (igual a `/usuarios/foto-perfil`; webp/5MB deixam de ser aceitos). Ao trocar, a foto de perfil anterior é excluída (soft delete + arquivo/miniatura apagados após o commit); galeria intacta.
+- **Seeders:** `ChaveSeeder` gera códigos aleatórios de 20 caracteres (não versionados, pula nomes já existentes); `DemoRuaSeeder` só roda em `local`/`testing` e `DEMO_REMOVER` usa parse booleano (`0`/`false` não removem).
+- **Recomendação:** os códigos de 4 dígitos já emitidos continuam válidos (comparação em texto puro, sem invalidar convites), mas devem ser rotacionados. **Pendência (database-specialist):** `chaves.codigo` é `string(4)`; ampliar para >= 20 antes de rodar o novo `ChaveSeeder` em MySQL, e considerar guardar o código como hash e uma coluna de papel.
+
 ## Comandos artisan (rodar após o deploy das migrations)
 - `php artisan membros:gerar-slugs`: slug (`Str::slug(nome)`) para membros ADM/RUA sem slug; nunca sobrescreve; colisão vira `-2`, `-3`.
 - `php artisan fotos:gerar-miniaturas [--force]`: miniatura, largura/altura e `data_foto` (EXIF, só se vazia) das fotos existentes; falha com mensagem se a extensão GD não existir.

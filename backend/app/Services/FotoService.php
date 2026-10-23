@@ -13,6 +13,7 @@ use App\Models\TipoImagem;
 use App\Mapping\UsuarioFotoMapping;
 use App\Mapping\TipoImagemMapping;
 use App\Models\Foto;
+use App\Models\Pivots\UsuarioFoto;
 use App\Models\Usuario;
 use Illuminate\Support\Facades\DB;
 use DomainException;
@@ -77,11 +78,16 @@ class FotoService
         }
 
         $meta = ['thumbnail_path' => null];
+        $arquivosAntigos = [];
 
         try {
             $meta = $this->processarImagem($path);
 
-            $foto = DB::transaction(function () use ($usuario, $titulo, $descricao, $path, $tipoImagemId, $meta) {
+            $foto = DB::transaction(function () use ($usuario, $titulo, $descricao, $path, $tipoImagemId, $meta, &$arquivosAntigos) {
+                // Fotos de perfil anteriores (so tipo Perfil; galeria intacta): soft-delete + arquivos apos o commit.
+                $antigas = Foto::where('tipo_imagem_id', $tipoImagemId)
+                    ->whereIn('id', UsuarioFoto::where(UsuarioFotoMapping::USUARIO_ID, $usuario->id)->select(UsuarioFotoMapping::FOTO_ID))
+                    ->get();
                 $foto = $this->fotoRepository->create([
                     'titulo' => $titulo ?? 'Foto de perfil',
                     'descricao' => $descricao,
@@ -93,6 +99,12 @@ class FotoService
                     'altura' => $meta['altura'],
                     'thumbnail_path' => $meta['thumbnail_path'],
                 ]);
+
+                foreach ($antigas as $antiga) {
+                    $arquivosAntigos[] = $antiga->path;
+                    $arquivosAntigos[] = $antiga->thumbnail_path;
+                    $antiga->delete();
+                }
 
                 $this->usuarioFotoRepository->deletePorTipoImagem($usuario->id, $tipoImagemId);
 
@@ -108,6 +120,8 @@ class FotoService
 
             throw $e;
         }
+
+        Storage::disk('public')->delete(array_values(array_filter($arquivosAntigos)));
 
         return $foto;
     }
