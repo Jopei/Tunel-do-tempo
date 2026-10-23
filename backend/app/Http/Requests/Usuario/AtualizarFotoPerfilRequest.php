@@ -27,7 +27,7 @@ class AtualizarFotoPerfilRequest extends FormRequest
                 . UsuarioMapping::UUID . ',' 
                 . UsuarioMapping::DELETED_AT . ',NULL',
 
-            'foto' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'foto' => ['required', 'image', 'mimes:jpg,jpeg,png', 'max:2048', 'dimensions:max_width=12000,max_height=12000'],
         ];
     }
 }

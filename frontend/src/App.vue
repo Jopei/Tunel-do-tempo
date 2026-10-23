@@ -10,6 +10,8 @@
       </router-view>
     </v-main>
     <ConfirmDialog />
+    <UploadPainel v-if="auth.logado" />
+    <PlayerBarra />
     <AtalhosDialog />
     <BuscaGlobal v-if="auth.logado" />
   </v-app>
@@ -24,6 +26,8 @@ import ConfirmDialog from "@/components/ui/ConfirmDialog.vue";
 import { useAuthStore } from "@/stores/auth";
 import BuscaGlobal from "@/components/ui/BuscaGlobal.vue";
 import AtalhosDialog from "@/components/ui/AtalhosDialog.vue";
+import UploadPainel from "@/components/upload/UploadPainel.vue";
+import PlayerBarra from "@/components/musicas/PlayerBarra.vue";
 
 const auth = useAuthStore();
 </script>
@@ -33,6 +37,8 @@ const auth = useAuthStore();
   --v-layout-top: 0px !important;
   padding-top: 0 !important;
   min-height: 100dvh;
+  /* Espaço para o player de música fixo (definido por PlayerBarra; 0 quando oculto). */
+  padding-bottom: var(--tm-player-h, 0px) !important;
 }
 
 #transition-overlay {

@@ -15,4 +15,10 @@ class MusicaMapping
     public const CREATED_AT = 'created_at';
     public const UPDATED_AT = 'updated_at';
     public const DELETED_AT = 'deleted_at';
+
+    public const ARTISTA = 'artista';
+    public const ALBUM = 'album';
+    public const DURACAO_SEGUNDOS = 'duracao_segundos';
+    public const CAPA_FOTO_ID = 'capa_foto_id';
+    public const ANO = 'ano';
 }

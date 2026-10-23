@@ -62,3 +62,53 @@ export function forcaSenha(s = "") {
   if (/\d/.test(s) && /[^A-Za-z0-9]/.test(s)) n++;
   return Math.max(1, n);
 }
+
+/** 75 -> "1:15"; 3725 -> "1:02:05" */
+export function formatarDuracao(segundos) {
+  const s = Math.max(0, Math.round(Number(segundos) || 0));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const r = String(s % 60).padStart(2, "0");
+  return h ? `${h}:${String(m).padStart(2, "0")}:${r}` : `${m}:${r}`;
+}
+
+/** 75 -> "1 minuto e 15 segundos" (para aria-valuetext) */
+export function duracaoPorExtenso(segundos) {
+  const s = Math.max(0, Math.round(Number(segundos) || 0));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  const partes = [];
+  if (m) partes.push(`${m} ${m === 1 ? "minuto" : "minutos"}`);
+  if (r || !m) partes.push(`${r} ${r === 1 ? "segundo" : "segundos"}`);
+  return partes.join(" e ");
+}
+
+/** Interpreta "YYYY-MM-DD" como data local (new Date() a trataria como UTC e recuaria um dia no Brasil). */
+export function parseDataLocal(valor) {
+  if (!valor) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(valor));
+  const d = m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(valor);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/** "14 de junho de 2014" (sem deslocamento de fuso). */
+export function dataCompleta(valor) {
+  const d = parseDataLocal(valor);
+  return d ? d.toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" }) : "";
+}
+
+/** "há 7 anos", "há 3 meses", "há 5 dias", "hoje". Nunca é a única fonte: acompanhe de <time> + data completa. */
+export function tempoRelativo(valor, agora = new Date()) {
+  const d = parseDataLocal(valor);
+  if (!d) return "";
+  if (d > agora) return dataCompleta(valor);
+  const meses = (agora.getFullYear() - d.getFullYear()) * 12 + (agora.getMonth() - d.getMonth()) - (agora.getDate() < d.getDate() ? 1 : 0);
+  if (meses >= 12) {
+    const a = Math.floor(meses / 12);
+    return `há ${a} ${a === 1 ? "ano" : "anos"}`;
+  }
+  if (meses >= 1) return `há ${meses} ${meses === 1 ? "mês" : "meses"}`;
+  const dias = Math.floor((new Date(agora.getFullYear(), agora.getMonth(), agora.getDate()) - d) / 86400000);
+  if (dias <= 0) return "hoje";
+  return `há ${dias} ${dias === 1 ? "dia" : "dias"}`;
+}

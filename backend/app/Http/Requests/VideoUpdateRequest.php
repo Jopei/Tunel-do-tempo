@@ -29,6 +29,7 @@ class VideoUpdateRequest extends FormRequest
 
             'titulo' => 'nullable|string|max:255',
             'descricao' => 'nullable|string|max:1000',
+            'data_video' => 'nullable|date_format:Y-m-d',
         ];
     }
 

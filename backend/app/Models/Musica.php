@@ -22,6 +22,16 @@ class Musica extends Model
         MusicaMapping::UUID,
         MusicaMapping::TITULO,
         MusicaMapping::PATH,
+        MusicaMapping::ARTISTA,
+        MusicaMapping::ALBUM,
+        MusicaMapping::DURACAO_SEGUNDOS,
+        MusicaMapping::CAPA_FOTO_ID,
+        MusicaMapping::ANO,
+    ];
+
+    protected $casts = [
+        MusicaMapping::DURACAO_SEGUNDOS => 'integer',
+        MusicaMapping::ANO => 'integer',
     ];
 
     protected $dates = [
@@ -29,6 +39,11 @@ class Musica extends Model
         MusicaMapping::UPDATED_AT,
         MusicaMapping::DELETED_AT,
     ];
+
+    public function capa()
+    {
+        return $this->belongsTo(Foto::class, MusicaMapping::CAPA_FOTO_ID, 'id')->withTrashed();
+    }
 
     public function historias()
     {

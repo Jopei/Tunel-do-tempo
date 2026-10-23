@@ -231,14 +231,17 @@ h1:focus {
   text-align: justify;
 }
 
-/* Transição entre páginas */
+/* Transição entre páginas (out-in): fade + 8px de subida na entrada */
 .pagina-enter-active,
 .pagina-leave-active {
-  transition: opacity var(--tm-dur-base) var(--tm-ease);
+  transition: opacity var(--tm-dur-fast) var(--tm-ease), transform var(--tm-dur-fast) var(--tm-ease);
 }
 .pagina-enter-from,
 .pagina-leave-to {
   opacity: 0;
+}
+.pagina-enter-from {
+  transform: translateY(8px);
 }
 
 /* Revelação lenta */

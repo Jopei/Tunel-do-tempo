@@ -3,7 +3,7 @@
     <h2 id="aniv-titulo" class="tm-title">Aniversariantes do mês</h2>
     <ul class="lista">
       <li v-for="m in aniversariantes" :key="m.uuid">
-        <router-link :to="{ name: 'membro', params: { uuid: m.uuid } }" class="pessoa">
+        <router-link :to="{ name: 'membro', params: { slug: chaveMembro(m) } }" class="pessoa">
           <AvatarUsuario :nome="m.nome" :src="m.foto_url || null" :size="48" />
           <span>
             <strong>{{ m.nome }}</strong>
@@ -18,6 +18,7 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import { listarUsuarios } from "@/services/usuario.service";
+import { chaveMembro } from "@/services/membro.service";
 import AvatarUsuario from "@/components/ui/AvatarUsuario.vue";
 
 // Só aparece se GET /usuarios trouxer `aniversario`; sem o campo (ou em erro) não renderiza nada.

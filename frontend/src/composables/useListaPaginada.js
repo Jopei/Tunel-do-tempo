@@ -16,11 +16,33 @@ export function useListaPaginada(fetchPagina) {
   const sentinelaEl = ref(null);
   let observer = null;
   let geracao = 0;
+  let emVoo = null;
 
   const temMais = computed(() => pagina.value < ultimaPagina.value);
   const vazio = computed(() => !carregando.value && !erro.value && pagina.value > 0 && itens.value.length === 0);
 
-  async function carregarProxima() {
+  function carregarProxima() {
+    if (carregando.value && emVoo) return emVoo;
+    const p = buscarProxima();
+    emVoo = p;
+    p.finally(() => {
+      if (emVoo === p) emVoo = null;
+      // Se a sentinela ainda está visível (1ª página não preenche a tela), re-observar dispara nova checagem.
+      if (temMais.value && !erro.value) nextTick(observar);
+    });
+    return p;
+  }
+
+  /** Carrega páginas em sequência até haver pelo menos n itens (ou acabar / dar erro). */
+  async function carregarAte(n) {
+    while (itens.value.length < n && (pagina.value === 0 || temMais.value) && !erro.value) {
+      const antes = pagina.value;
+      await carregarProxima();
+      if (pagina.value === antes) break;
+    }
+  }
+
+  async function buscarProxima() {
     if (carregando.value || (pagina.value > 0 && !temMais.value)) return;
     const minha = geracao;
     carregando.value = true;
@@ -75,5 +97,5 @@ export function useListaPaginada(fetchPagina) {
     observer?.disconnect();
   });
 
-  return { itens, total, carregando, erro, temMais, vazio, anuncio, carregarProxima, recarregar, sentinela };
+  return { itens, total, carregando, erro, temMais, vazio, anuncio, carregarProxima, carregarAte, recarregar, sentinela };
 }

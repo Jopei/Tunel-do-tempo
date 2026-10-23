@@ -39,7 +39,7 @@ class UsuarioPublicoBuscaApiTest extends TestCase
         $resposta = $this->getJson('/api/public/membros');
 
         $resposta->assertOk()->assertJsonCount(1)->assertJsonPath('0.nome', 'Ana');
-        $this->assertSame(['foto_url', 'nome', 'uuid'], collect($resposta->json('0'))->keys()->sort()->values()->all());
+        $this->assertSame(['foto_url', 'nome', 'slug', 'uuid'], collect($resposta->json('0'))->keys()->sort()->values()->all());
     }
 
     public function test_busca_global_agrupa_resultados(): void

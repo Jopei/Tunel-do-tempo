@@ -6,6 +6,9 @@ use App\Actions\Usuario\CriarUsuarioAction;
 use App\DTO\Usuario\AtualizarUsuarioDTO;
 use App\Http\Requests\UsuarioStoreRequest;
 use App\Services\UsuarioService;
+use App\Services\FotoService;
+use App\Enums\TipoUsuarioEnum;
+use Illuminate\Auth\Access\AuthorizationException;
 use App\DTO\UsuarioCreateDTO;
 use App\Http\Requests\Usuario\AtualizarFotoPerfilRequest;
 use App\Http\Requests\Usuario\AtualizarUsuarioRequest;
@@ -14,6 +17,7 @@ use App\Http\Resources\UsuarioListResource;
 use App\Http\Resources\UsuarioResource;
 use App\Http\Resources\UsuarioAuthResource;
 use Illuminate\Http\JsonResponse;
+use App\Exceptions\ChaveInvalidaException;
 use Throwable;
 
 class UsuarioController extends Controller
@@ -33,9 +37,13 @@ class UsuarioController extends Controller
                 new UsuarioResource($usuario),
                 201
             );
+        } catch (ChaveInvalidaException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
         } catch (Throwable $e) {
+            report($e);
+
             return response()->json([
-                'message' => $e->getMessage()
+                'message' => 'Não foi possível concluir o cadastro.'
             ], 422);
         }
     }
@@ -100,18 +108,23 @@ class UsuarioController extends Controller
     public function atualizarFotoPerfil(
         AtualizarFotoPerfilRequest $request,
         UsuarioService $service,
+        FotoService $fotoService,
         string $uuid
     ): JsonResponse {
+        $logado = auth()->user();
 
-        $foto = $service->atualizarFotoPerfil(
-            $uuid,
-            $request->file('foto'),
-            auth()->user()
+        if ($logado->uuid !== $uuid && $logado->tipoUsuario?->nome !== TipoUsuarioEnum::MEMBRO_ADM->value) {
+            throw new AuthorizationException('Você não pode alterar a foto de outro usuário.');
+        }
+
+        $foto = $fotoService->definirFotoPerfil(
+            $service->buscarUsuarioPorUuid($uuid),
+            $request->file('foto')
         );
 
         return response()->json([
             'mensagem' => 'Foto atualizada com sucesso.',
-            'foto' => $foto
+            'foto' => new \App\Http\Resources\FotoPerfilResource($foto)
         ]);
     }
 }

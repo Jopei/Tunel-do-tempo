@@ -1,18 +1,6 @@
 <template>
-  <div class="login-page tm-immersive">
-    <div class="login-card">
-      <div class="login-image">
-        <img
-          :src="imagemLogin"
-          alt=""
-          width="880"
-          height="450"
-          fetchpriority="high"
-          decoding="async"
-        />
-      </div>
-
-      <div class="login-form">
+  <AuthLayout>
+    <div class="login-form">
         <h1 tabindex="-1">Que bom te ver por aqui.</h1>
         <p>Entre com sua conta de membro ou continue como visitante.</p>
         <p v-if="veioDeRotaProtegida" class="aviso" role="note">
@@ -98,14 +86,14 @@
             Tem uma chave de convite? Cadastre-se
           </router-link>
         </div>
-      </div>
     </div>
-  </div>
+  </AuthLayout>
 </template>
 
 <script setup>
 import { ref, computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
+import AuthLayout from "@/components/auth/AuthLayout.vue";
 import { login } from "@/services/auth.service";
 import { useNotify } from "@/composables/useNotify";
 import { interpretarErro } from "@/composables/useApiError";
@@ -121,9 +109,6 @@ const erros = ref({});
 const loading = ref(false);
 const mostrarSenha = ref(false);
 const emailRef = ref(null);
-
-// Sorteio síncrono: evita o flash de imagem vazia
-const imagemLogin = `/login/${Math.floor(Math.random() * 10) + 1}.jpg`;
 
 const veioDeRotaProtegida = computed(() => !!route.query.redirect);
 
@@ -169,105 +154,40 @@ function entrarComoVisitante() {
 </script>
 
 <style scoped>
-.login-page {
-  min-height: 100dvh;
-  background: url("/backgrounds/login-bg.svg") no-repeat center center;
-  background-size: cover;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px 16px;
-}
-
-.login-card {
-  width: 880px;
-  max-width: 100%;
-  background: rgb(var(--v-theme-surface));
-  color: rgb(var(--v-theme-on-surface));
-  border-radius: var(--tm-radius-xl);
-  overflow: hidden;
-  box-shadow: var(--tm-shadow-lg);
-  display: flex;
-  flex-direction: column;
-  animation: tm-fade-up 0.6s var(--tm-ease) both;
-}
-
-.login-image {
-  height: 450px;
-  background: rgb(var(--v-theme-surface-variant));
-}
-
-.login-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
 .login-form {
-  padding: 40px 44px;
   text-align: center;
-  max-width: 520px;
-  width: 100%;
-  margin: 0 auto;
 }
-
 .login-form h1 {
   font-size: var(--tm-fs-2xl);
   margin-bottom: 8px;
 }
-
 .login-form p {
   color: var(--tm-ink-muted);
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
-
 .login-form .aviso {
   color: var(--tm-gold-text);
   font-weight: 600;
 }
-
 .entrar {
   color: rgb(var(--v-theme-on-primary)) !important;
   font-weight: 700;
 }
-
 .outros {
-  margin-top: 16px;
+  margin-top: 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
 }
-
 .convite {
   color: var(--tm-gold-text);
   font-size: var(--tm-fs-sm);
   padding: 8px;
 }
-
-@media (max-width: 600px) {
-  .login-page {
-    padding: 0;
-    align-items: stretch;
-  }
-
-  .login-card {
-    border-radius: var(--tm-radius-lg);
-    margin: 12px;
-  }
-
-  .login-image {
-    height: 220px;
-  }
-
-  .login-form {
-    padding: 28px 20px;
-  }
-}
 .esqueci {
   text-align: right;
-  margin: -8px 0 16px;
+  margin: -8px 0 12px;
 }
 .esqueci a {
   color: var(--tm-gold-text);

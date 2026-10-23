@@ -1,9 +1,11 @@
 <template>
   <section class="homenagem-page tm-immersive">
-    <div ref="particulasRef" id="particles-js" aria-hidden="true"></div>
+    <div ref="particulasRef" id="particles-js" aria-hidden="true">
+      <canvas ref="canvasRef" class="particulas-canvas"></canvas>
+    </div>
 
     <div class="conteudo">
-      <h1 class="sr-only">Aquele que sonhou</h1>
+      <h1 class="sr-only">Italo, aquele que sonhou</h1>
 
       <blockquote class="frase">
         <p v-for="(l, i) in linhas" :key="l.letra" class="linha reveal" :style="{ '--delay': `${i * 0.35}s` }">
@@ -14,19 +16,11 @@
           </span>
         </p>
       </blockquote>
-
-      <div class="lembrancas-card">
-        <LembrancasSecao v-if="auth.logado" />
-        <p v-else class="entre">
-          <router-link :to="{ name: 'login', query: { redirect: '/aquele-que-sonhou' } }">Entre</router-link>
-          para deixar uma lembrança.
-        </p>
-      </div>
-
-      <v-btn to="/a-rua" variant="flat" color="surface" prepend-icon="mdi-arrow-left" class="voltar">
-        Voltar à rua
-      </v-btn>
     </div>
+
+    <v-btn to="/a-rua" variant="flat" color="surface" prepend-icon="mdi-arrow-left" class="voltar">
+      Voltar à rua
+    </v-btn>
 
     <button
       type="button"
@@ -43,10 +37,9 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from "vue";
-import { useAuthStore } from "@/stores/auth";
-import LembrancasSecao from "@/components/ui/LembrancasSecao.vue";
+import { usePlayerStore } from "@/stores/player";
 import { finalizarTransicao } from "@/composables/useTransicao";
-import { prefereMenosMovimento } from "@/composables/useTema";
+import { iniciarParticulas } from "@/composables/useParticulas";
 
 const linhas = [
   { letra: "I", resto: "niciou sua jornada," },
@@ -56,11 +49,11 @@ const linhas = [
   { letra: "O", resto: "chamaram: aquele que sonhou." },
 ];
 
-const auth = useAuthStore();
 const tocando = ref(false);
 const particulasRef = ref(null);
+const canvasRef = ref(null);
 let audio = null;
-let particulasAtivas = false;
+let pararParticulas = () => {};
 
 // Sem autoplay: a música só começa por um clique explícito.
 function alternarAudio() {
@@ -76,61 +69,35 @@ function alternarAudio() {
     tocando.value = false;
     return;
   }
+  usePlayerStore().pausarPorMidia(); // um som por vez: pausa a música global
   audio
     .play()
     .then(() => (tocando.value = true))
     .catch(() => (tocando.value = false));
 }
 
-function aoMudarVisibilidade() {
-  if (document.visibilityState === "hidden" && tocando.value) {
-    audio?.pause();
-    tocando.value = false;
-  }
+// um som por vez: o player global pausa esta trilha ao começar a tocar
+function pausarLocal() {
+  if (!audio) return;
+  audio.pause();
+  tocando.value = false;
 }
-
-async function iniciarParticulas() {
-  if (prefereMenosMovimento()) return;
-  await import("particles.js");
-  if (!window.particlesJS || !particulasRef.value) return;
-  const pequena = window.matchMedia("(max-width: 768px)").matches;
-  window.particlesJS("particles-js", {
-    particles: {
-      number: { value: pequena ? 30 : 50 },
-      color: { value: "#000000" },
-      shape: { type: "circle" },
-      opacity: { value: 1, random: true },
-      size: { value: 5, random: true },
-      line_linked: { enable: false },
-      move: { enable: true, speed: 0.6, random: true, out_mode: "out" },
-    },
-    interactivity: { events: { onhover: { enable: false }, onclick: { enable: false } } },
-    retina_detect: true,
-  });
-  particulasAtivas = true;
-}
+const desregistrar = usePlayerStore().registrarMidiaLocal(pausarLocal);
 
 onMounted(() => {
   finalizarTransicao();
-  document.addEventListener("visibilitychange", aoMudarVisibilidade);
-  iniciarParticulas();
+  pararParticulas = iniciarParticulas(particulasRef.value, canvasRef.value);
 });
 
 onBeforeUnmount(() => {
-  document.removeEventListener("visibilitychange", aoMudarVisibilidade);
-  if (audio) {
-    audio.pause();
-    audio.src = "";
-    audio = null;
+  desregistrar();
+  const a = audio;
+  audio = null;
+  if (a) {
+    a.pause();
+    a.src = "";
   }
-  if (particulasAtivas && Array.isArray(window.pJSDom) && window.pJSDom.length) {
-    try {
-      window.pJSDom[0].pJS.fn.vendors.destroypJS();
-    } catch {
-      /* já destruído */
-    }
-    window.pJSDom = [];
-  }
+  pararParticulas();
 });
 </script>
 
@@ -146,6 +113,15 @@ onBeforeUnmount(() => {
   position: absolute;
   inset: 0;
   z-index: 1;
+  pointer-events: none;
+}
+
+.particulas-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .conteudo {
@@ -157,7 +133,7 @@ onBeforeUnmount(() => {
   justify-content: center;
   align-items: center;
   gap: var(--tm-space-6);
-  padding: calc(var(--tm-navbar-h) + 48px) var(--tm-space-4) 120px;
+  padding: calc(var(--tm-navbar-h) + 72px) var(--tm-space-4) 120px;
 }
 
 .frase {
@@ -188,28 +164,11 @@ onBeforeUnmount(() => {
   font-weight: 800;
 }
 
-.lembrancas-card {
-  width: 100%;
-  max-width: 560px;
-  background: rgb(var(--v-theme-surface));
-  color: rgb(var(--v-theme-on-surface));
-  border-radius: var(--tm-radius-lg);
-  padding: var(--tm-space-5);
-}
-.lembrancas-card :deep(.lembrancas) {
-  margin-top: 0;
-  padding-top: 0;
-  border-top: 0;
-}
-.entre {
-  margin: 0;
-  text-align: center;
-}
-.entre a {
-  color: var(--tm-gold-text);
-  font-weight: 700;
-}
 .voltar {
+  position: fixed;
+  top: calc(var(--tm-navbar-h) + 16px);
+  left: 16px;
+  z-index: 1100;
   color: rgb(var(--v-theme-on-surface)) !important;
 }
 
@@ -239,6 +198,16 @@ onBeforeUnmount(() => {
   .audio-control {
     bottom: 16px;
     right: 16px;
+  }
+  .voltar {
+    top: calc(var(--tm-navbar-h) + 12px);
+    left: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .audio-control {
+    transition: none;
   }
 }
 </style>

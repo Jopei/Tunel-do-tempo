@@ -6,6 +6,7 @@ use App\DTO\CreateApiKeyDTO;
 use App\Http\Controllers\Controller;
 use App\Services\ApiKeyService;
 use App\Http\Requests\CreateApiKeyRequest;
+use Illuminate\Auth\Access\AuthorizationException;
 use Throwable;
 
 class ApiKeyController extends Controller
@@ -26,8 +27,11 @@ class ApiKeyController extends Controller
             return response()->json(
                 $this->service->gerar($dto)
             );
+        } catch (AuthorizationException $e) {
+            return response()->json(['message' => 'Operação não permitida.'], 403);
         } catch (Throwable $e) {
-            dd($e->getMessage());
+            report($e);
+
             return response()->json([
                 'message' => 'Erro ao gerar API Key'
             ], 500);

@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Http\Requests\LoginRequest;
 use App\Http\Resources\UsuarioAuthResource;
 use App\Mapping\UsuarioMapping;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthController extends Controller
 {
@@ -38,9 +40,18 @@ class AuthController extends Controller
     }
 
 
-    public function logout()
+    public function logout(Request $request)
     {
-        Auth::logout();
+        $token = $request->user('sanctum')?->currentAccessToken();
+
+        // Guard 'web' ja autenticado na mesma requisicao devolve TransientToken: revoga pelo bearer.
+        if (!$token instanceof PersonalAccessToken && $request->bearerToken()) {
+            $token = PersonalAccessToken::findToken($request->bearerToken());
+        }
+
+        if ($token instanceof PersonalAccessToken) {
+            $token->delete();
+        }
 
         return response()->json([
             'message' => 'Logout realizado com sucesso'

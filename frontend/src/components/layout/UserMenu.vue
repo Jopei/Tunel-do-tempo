@@ -27,7 +27,7 @@
         title="Criar notificação"
         to="/admin/notificacoes/nova"
       />
-      <v-list-item prepend-icon="mdi-candle" title="Em memória" to="/aquele-que-sonhou" />
+      <v-list-item prepend-icon="mdi-candle" title="Em memória de Italo" to="/aquele-que-sonhou" />
       <v-divider />
       <v-list-item
         :prepend-icon="tema.efetivo.value === 'escuro' ? 'mdi-weather-sunny' : 'mdi-weather-night'"

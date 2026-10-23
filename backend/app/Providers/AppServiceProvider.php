@@ -32,6 +32,11 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::policy(Historia::class, HistoriaPolicy::class);
 
+        // Login: limite por IP + e-mail (429 padrao do Laravel)
+        RateLimiter::for('login', function (Request $request) {
+            return Limit::perMinute(5)->by('login:' . $request->ip() . '|' . strtolower((string) $request->input('login')));
+        });
+
         // Esqueci/redefinir senha: limite por IP e por e-mail
         RateLimiter::for('senha', function (Request $request) {
             return [

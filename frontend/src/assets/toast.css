@@ -1,0 +1,34 @@
+/*
+ * Toasts (vue3-toastify): entrada e saída discretas, fade + 8px em 200 ms (spec 8, item 22).
+ * Importado depois do CSS da lib para sobrescrever o slide padrão de 0,7 s.
+ */
+[class*="Toastify__slide-enter--"] {
+  animation-name: tm-toast-entra;
+  animation-duration: 200ms;
+  animation-timing-function: var(--tm-ease);
+}
+[class*="Toastify__slide-exit--"] {
+  animation-name: tm-toast-sai;
+  animation-duration: 200ms;
+  animation-timing-function: var(--tm-ease);
+}
+@keyframes tm-toast-entra {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes tm-toast-sai {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+  }
+}

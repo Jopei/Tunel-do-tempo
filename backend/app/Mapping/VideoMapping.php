@@ -19,4 +19,9 @@ class VideoMapping
     public const CREATED_AT = 'created_at';
     public const UPDATED_AT = 'updated_at';
     public const DELETED_AT = 'deleted_at';
+
+    public const PASTA_ID = 'pasta_id';
+    public const DURACAO_SEGUNDOS = 'duracao_segundos';
+    public const TAMANHO_BYTES = 'tamanho_bytes';
+    public const DATA_VIDEO = 'data_video';
 }

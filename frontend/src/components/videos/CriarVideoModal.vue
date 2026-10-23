@@ -35,6 +35,17 @@
       />
 
       <v-text-field v-model="titulo" label="Título" class="mt-4" :error-messages="erros.titulo" :disabled="loading" autocomplete="off" />
+      <v-text-field
+        v-model="dataVideo"
+        type="date"
+        label="Data do vídeo (opcional)"
+        :max="hojeLocal()"
+        :error-messages="erros.data_video"
+        :disabled="loading"
+        hint="Quando foi gravado. Ajuda a montar a estante por ano."
+        persistent-hint
+        class="mb-2"
+      />
       <v-textarea v-model="descricao" label="Descrição" rows="2" auto-grow :error-messages="erros.descricao" :disabled="loading" />
 
       <div v-if="loading" class="progresso" role="status" aria-live="polite">
@@ -78,6 +89,11 @@ const notify = useNotify();
 
 const titulo = ref("");
 const descricao = ref("");
+const dataVideo = ref("");
+function hojeLocal() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 const video = ref(null);
 const preview = ref(null);
 const loading = ref(false);
@@ -85,7 +101,7 @@ const progresso = ref(0);
 const erros = ref({});
 let controller = null;
 
-const sujo = computed(() => !!(titulo.value || descricao.value || video.value));
+const sujo = computed(() => !!(titulo.value || descricao.value || dataVideo.value || video.value));
 
 function escolher([arquivo]) {
   removerVideo();
@@ -114,6 +130,7 @@ async function salvar() {
   const form = new FormData();
   form.append("titulo", titulo.value);
   form.append("descricao", descricao.value);
+  if (dataVideo.value) form.append("data_video", dataVideo.value);
   form.append("video", video.value);
 
   loading.value = true;
@@ -149,6 +166,7 @@ async function salvar() {
 function limpar() {
   titulo.value = "";
   descricao.value = "";
+  dataVideo.value = "";
   erros.value = {};
   removerVideo();
 }

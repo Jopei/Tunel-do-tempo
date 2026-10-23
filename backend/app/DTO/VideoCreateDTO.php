@@ -12,5 +12,6 @@ class VideoCreateDTO
         public ?UploadedFile $video,
         public ?string $externalLink,
         public ?UploadedFile $thumbnail,
+        public ?string $dataVideo = null,
     ) {}
 }

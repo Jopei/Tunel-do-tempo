@@ -1,0 +1,221 @@
+/*
+ * Movimento da Esquina (histórias). Só transform/opacity.
+ * Tudo que anima fica dentro de @media (prefers-reduced-motion: no-preference) + html:not([data-reduzir="1"]),
+ * então com movimento reduzido o conteúdo aparece direto no estado final.
+ * Ganchos: ver docs/ui-ux-historias-2011-2018.md, seção 6.
+ */
+
+/* Base sem animação: a pílula da régua (posicionada por JS) e o contexto do botão curtir */
+.hx-regua__lista {
+  position: relative;
+}
+.hx-regua__pilula {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: var(--tm-radius-pill);
+  background: var(--tm-ink);
+  pointer-events: none;
+  opacity: 0;
+}
+.hx-acao--curtir {
+  position: relative;
+}
+.hx-motion-particula {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 50%;
+  background: var(--tm-gold);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html:not([data-reduzir="1"]) .hx-capa__avatar {
+    animation: hx-capa-avatar 500ms ease-out both;
+  }
+  html:not([data-reduzir="1"]) .hx-capa__textos {
+    animation: hx-capa-textos 500ms ease-out 80ms both;
+  }
+
+  html:not([data-reduzir="1"]) .hx-regua__pilula {
+    transition: transform 250ms ease-out, opacity 150ms ease-out;
+  }
+
+  /* Marco do ano: selo pina e fio da timeline desenha de cima para baixo */
+  html:not([data-reduzir="1"]) .hx-ano.is-visivel .hx-ano__selo {
+    animation: hx-pina 450ms ease-out both;
+  }
+  html:not([data-reduzir="1"]) .hx-ano__post:not(.is-visivel) {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  html:not([data-reduzir="1"]) .hx-ano__post.is-visivel {
+    animation: hx-sobe 400ms ease-out var(--hx-atraso, 0ms) both;
+  }
+
+  /* Post e linha: eleva 2px no hover/foco (sombra muda sem animar box-shadow) */
+  html:not([data-reduzir="1"]) .hx-linha {
+    transition: transform 200ms ease-out, background-color 200ms ease-out;
+  }
+  html:not([data-reduzir="1"]) .hx-linha:hover,
+  html:not([data-reduzir="1"]) .hx-linha:focus-within {
+    transform: translateY(-2px);
+  }
+
+  /* Heart pop e contador são WAAPI (ver HistoriaCard.vue). Aqui só o selo do comentário novo fica por JS. */
+
+  /* Hero: zoom lento uma vez (scale) + parallax (translate), em propriedades separadas */
+  html:not([data-reduzir="1"]) .hx-hero__capa {
+    animation: hx-hero-zoom 1200ms ease-out both;
+  }
+  html:not([data-reduzir="1"]) .hx-hero__selo-ano,
+  html:not([data-reduzir="1"]) .hx-hero__quando {
+    animation: hx-surge 350ms ease-out 250ms both;
+  }
+
+  /* Mosaico do álbum: cascata */
+  html:not([data-reduzir="1"]) .hx-album__item {
+    animation: hx-entra 350ms ease-out both;
+    animation-delay: calc(var(--hx-i, 0) * 50ms);
+  }
+
+  /* Virar o ano: faixa desliza; anterior mais curta (250ms), próxima 500ms */
+  html:not([data-reduzir="1"]) .hx-viz__virada--depois {
+    animation: hx-vira-depois 500ms ease-out both;
+  }
+  html:not([data-reduzir="1"]) .hx-viz__virada--antes {
+    animation: hx-vira-antes 250ms ease-out both;
+  }
+
+  /* Skeleton: brilho passando (transform) em loop; parado com movimento reduzido */
+  html:not([data-reduzir="1"]) .hx-skeleton {
+    position: relative;
+    overflow: hidden;
+  }
+  html:not([data-reduzir="1"]) .hx-skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+    transform: translateX(-100%);
+    animation: hx-brilho 1400ms ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  /* Barra compacta do post */
+  html:not([data-reduzir="1"]) .hx-barra-fixa {
+    transition: transform 250ms ease-out, opacity 250ms ease-out, visibility 250ms;
+  }
+
+  /* Troca de modo Feed / Cartões / Lista (Transition em HistoriasView) */
+  html:not([data-reduzir="1"]) .hx-modo-enter-active,
+  html:not([data-reduzir="1"]) .hx-modo-leave-active {
+    transition: opacity 200ms ease-out, transform 200ms ease-out;
+  }
+  html:not([data-reduzir="1"]) .hx-modo-enter-from,
+  html:not([data-reduzir="1"]) .hx-modo-leave-to {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* Parallax do hero: só desktop e com scroll-driven animations; sem suporte, a capa fica estática */
+@media (prefers-reduced-motion: no-preference) and (min-width: 960px) {
+  @supports (animation-timeline: scroll()) {
+    html:not([data-reduzir="1"]) .hx-hero__capa {
+      inset: -18% 0 0 0;
+      animation: hx-hero-zoom 1200ms ease-out both, hx-paralaxe linear both;
+      animation-timeline: auto, scroll(root);
+      animation-range: normal, 0 50vh;
+    }
+  }
+  /* fio da timeline desenhado de cima para baixo */
+  html:not([data-reduzir="1"]) .hx-ano__posts {
+    border-left-color: transparent;
+  }
+  html:not([data-reduzir="1"]) .hx-ano__posts::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -3px;
+    width: 3px;
+    background: var(--hx-ano-suave);
+    transform: scaleY(0);
+    transform-origin: top;
+  }
+  html:not([data-reduzir="1"]) .hx-ano.is-visivel .hx-ano__posts::after {
+    animation: hx-fio 450ms ease-out both;
+  }
+  html:not([data-reduzir="1"]) .hx-ano--lista .hx-ano__posts::after {
+    display: none;
+  }
+}
+
+/* Movimento reduzido: sem translate de hover/foco */
+@media (prefers-reduced-motion: reduce) {
+  .hx-post:hover,
+  .hx-post:focus-within,
+  .hx-linha:hover,
+  .hx-linha:focus-within {
+    transform: none !important;
+  }
+}
+html[data-reduzir="1"] .hx-post:hover,
+html[data-reduzir="1"] .hx-post:focus-within,
+html[data-reduzir="1"] .hx-linha:hover,
+html[data-reduzir="1"] .hx-linha:focus-within {
+  transform: none !important;
+}
+
+@keyframes hx-capa-avatar {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes hx-capa-textos {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes hx-pina {
+  from { transform: scale(1.1); }
+  to { transform: scale(1); }
+}
+@keyframes hx-sobe {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes hx-fio {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+@keyframes hx-hero-zoom {
+  from { scale: 1.05; }
+  to { scale: 1; }
+}
+@keyframes hx-paralaxe {
+  from { translate: 0 0; }
+  to { translate: 0 15%; }
+}
+@keyframes hx-surge {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes hx-entra {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes hx-vira-depois {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes hx-vira-antes {
+  from { opacity: 0; transform: translateX(-24px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes hx-brilho {
+  to { transform: translateX(100%); }
+}

@@ -27,13 +27,13 @@ const router = createRouter({
       path: "/esqueci-senha",
       name: "esqueci-senha",
       component: () => import("@/views/EsqueciSenhaView.vue"),
-      meta: { title: "Esqueci minha senha", guestOnly: true },
+      meta: { title: "Esqueci minha senha", guestOnly: true, hideNavbar: true },
     },
     {
       path: "/redefinir-senha",
       name: "redefinir-senha",
       component: () => import("@/views/RedefinirSenhaView.vue"),
-      meta: { title: "Redefinir senha" },
+      meta: { title: "Redefinir senha", hideNavbar: true },
     },
     {
       path: "/notificacoes/minhas",
@@ -69,13 +69,13 @@ const router = createRouter({
       path: "/aquele-que-sonhou",
       name: "aquele-que-sonhou",
       component: () => import("@/views/nao-te-esquecemos-amigoView.vue"),
-      meta: { title: "Aquele que sonhou", immersive: true },
+      meta: { title: "Italo, aquele que sonhou", immersive: true },
     },
     {
       path: "/cadastrar/usuarios",
       name: "cadastrar-usuarios",
       component: () => import("@/views/CadastrarUsuarioView.vue"),
-      meta: { title: "Quero fazer parte" },
+      meta: { title: "Quero fazer parte", hideNavbar: true },
     },
     {
       path: "/a-rua",
@@ -86,14 +86,20 @@ const router = createRouter({
     {
       path: "/galeria-fotos",
       name: "fotos",
-      component: () => import("@/views/FotosGaleriaView.vue"),
+      component: () => import("@/views/FotosView.vue"),
       meta: { title: "Fotos" },
     },
     {
       path: "/galeria-videos",
       name: "videos",
-      component: () => import("@/views/VideosGaleriaView.vue"),
+      component: () => import("@/views/VideosView.vue"),
       meta: { title: "Vídeos", requiresAuth: true },
+    },
+    {
+      path: "/videos/:uuid",
+      name: "video",
+      component: () => import("@/views/VideoPlayerView.vue"),
+      meta: { title: "Vídeo", requiresAuth: true },
     },
     {
       path: "/admin/notificacoes/nova",
@@ -121,10 +127,28 @@ const router = createRouter({
       meta: { title: "Membros", requiresAuth: true },
     },
     {
-      path: "/membros/:uuid",
+      path: "/membros/:slug",
       name: "membro",
       component: () => import("@/views/MembroView.vue"),
-      meta: { title: "Membro", requiresAuth: true },
+      meta: { title: "Membro", requiresAuth: true, immersive: true },
+    },
+    {
+      path: "/musicas",
+      name: "musicas",
+      component: () => import("@/views/MusicasView.vue"),
+      meta: { title: "Músicas", requiresAuth: true },
+    },
+    {
+      path: "/fotos/albuns",
+      name: "fotos-albuns",
+      component: () => import("@/views/AlbunsView.vue"),
+      meta: { title: "Álbuns", requiresAuth: true },
+    },
+    {
+      path: "/fotos/albuns/:uuid",
+      name: "fotos-album",
+      component: () => import("@/views/AlbumView.vue"),
+      meta: { title: "Álbum", requiresAuth: true },
     },
     {
       path: "/em-breve",

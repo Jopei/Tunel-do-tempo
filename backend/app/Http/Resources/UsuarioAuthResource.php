@@ -18,9 +18,9 @@ class UsuarioAuthResource extends JsonResource
             'aniversario' => $this->aniversario,
             'descricao' => $this->descricao,
             'tipo_usuario' => $this->tipoUsuario->nome,
-            'foto_perfil' => $this->fotos
-                ->where('tipo.nome', TipoImagemEnum::PERFIL->value)
-                ->first()?->path,
+            // foto_perfil: caminho cru da foto ATUAL (compatibilidade); use foto_url (com ?v=).
+            'foto_perfil' => $this->fotoPerfilAtual()?->path,
+            'foto_url' => $this->fotoPerfilUrl(),
         ];
     }
 }

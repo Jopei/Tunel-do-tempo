@@ -99,4 +99,12 @@ trait CriaCenarioApi
 
         return $foto;
     }
+
+    /** PNG 1x1 valido (nao depende da extensao GD). */
+    protected function pngFalso(string $nome = 'foto.png'): \Illuminate\Http\UploadedFile
+    {
+        $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
+
+        return \Illuminate\Http\UploadedFile::fake()->createWithContent($nome, $png);
+    }
 }

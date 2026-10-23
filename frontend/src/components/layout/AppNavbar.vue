@@ -21,6 +21,7 @@
         <v-btn
           v-for="item in itens"
           :key="item.to"
+          :class="{ 'link-mais-item': item.mais, 'v-btn--active': ehRua(item) }"
           :to="item.to"
           :exact="item.to === '/'"
           variant="text"
@@ -31,6 +32,31 @@
         >
           {{ item.titulo }}
         </v-btn>
+
+        <!-- 960-1179px: Músicas e Atualizações agrupadas em "Mais" -->
+        <v-menu location="bottom start">
+          <template #activator="{ props }">
+            <v-btn
+              v-bind="props"
+              variant="text"
+              color="on-surface"
+              class="link link-mais"
+              :class="{ 'v-btn--active': maisAtivo }"
+              prepend-icon="mdi-dots-horizontal"
+            >
+              Mais
+            </v-btn>
+          </template>
+          <v-list density="comfortable" aria-label="Mais">
+            <v-list-item
+              v-for="item in itensMais"
+              :key="item.to"
+              :to="item.to"
+              :prepend-icon="item.bloqueado ? 'mdi-lock-outline' : item.icone"
+              :title="item.titulo"
+            />
+          </v-list>
+        </v-menu>
       </nav>
 
       <v-spacer />
@@ -59,8 +85,9 @@
             </template>
             <v-list density="comfortable" aria-label="Criar">
               <v-list-item prepend-icon="mdi-book-open-page-variant-outline" title="História" to="/historias/criar" />
-              <v-list-item prepend-icon="mdi-image-plus" title="Foto" @click="abrirModal('foto')" />
+              <v-list-item prepend-icon="mdi-image-plus" title="Foto(s)" @click="abrirModal('foto')" />
               <v-list-item prepend-icon="mdi-video-plus-outline" title="Vídeo" @click="abrirModal('video')" />
+              <v-list-item prepend-icon="mdi-music-note-plus" title="Música" to="/musicas?nova=1" />
               <v-list-item prepend-icon="mdi-update" title="Atualização" @click="abrirModal('atualizacao')" />
             </v-list>
           </v-menu>
@@ -86,6 +113,7 @@
           :key="item.to"
           :to="item.to"
           :exact="item.to === '/'"
+          :active="ehRua(item) || undefined"
           :prepend-icon="item.icone"
           :title="item.titulo"
           @click="drawer = false"
@@ -97,7 +125,7 @@
         <v-list-item
           to="/aquele-que-sonhou"
           prepend-icon="mdi-candle"
-          title="Em memória"
+          title="Em memória de Italo"
           @click="drawer = false"
         />
       </v-list>
@@ -162,8 +190,13 @@ const itens = computed(() => [
   { titulo: "A Rua", to: "/a-rua", icone: "mdi-road-variant" },
   { titulo: "Fotos", to: "/galeria-fotos", icone: "mdi-image-multiple-outline" },
   { titulo: "Vídeos", to: "/galeria-videos", icone: "mdi-video-outline", bloqueado: !auth.logado },
-  { titulo: "Atualizações", to: "/atualizacoes", icone: "mdi-update" },
+  { titulo: "Músicas", to: "/musicas", icone: "mdi-music-note-outline", bloqueado: !auth.logado, mais: true },
+  { titulo: "Atualizações", to: "/atualizacoes", icone: "mdi-update", mais: true },
 ]);
+// A Rua fica ativa nas páginas de membro (/membros/:slug).
+const ehRua = (item) => item.to === "/a-rua" && route.path.startsWith("/membros/");
+const itensMais = computed(() => itens.value.filter((i) => i.mais));
+const maisAtivo = computed(() => itensMais.value.some((i) => route.path.startsWith(i.to)));
 
 function abrirModal(nome) {
   montado[nome] = true;
@@ -219,6 +252,22 @@ onMounted(() => {
   letter-spacing: 0;
 }
 
+/* Entre 960 e 1179px os itens "mais" ficam no menu; a partir de 1180px aparecem na barra. */
+.link-mais-item {
+  display: none !important;
+}
+.link-mais {
+  display: inline-flex;
+}
+@media (min-width: 1180px) {
+  .link-mais-item {
+    display: inline-flex !important;
+  }
+  .link-mais {
+    display: none;
+  }
+}
+
 /* Rota ativa: sublinhado ouro (não depende só da cor) */
 .link.v-btn--active {
   box-shadow: inset 0 -3px 0 var(--tm-gold);
@@ -232,6 +281,45 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+/* Microinterações: marca sobe 1px no hover; botões de ação afundam no clique (transform) */
+.marca .tm-title {
+  display: inline-block;
+  transition: transform var(--tm-dur-fast) var(--tm-ease);
+}
+.marca:hover .tm-title {
+  transform: translateY(-1px);
+}
+.entrar,
+.criar-btn {
+  transition: transform var(--tm-dur-fast) var(--tm-ease);
+}
+.entrar:active,
+.criar-btn:active {
+  transform: scale(0.97);
+}
+@media (prefers-reduced-motion: reduce) {
+  .marca .tm-title,
+  .entrar,
+  .criar-btn {
+    transition: none;
+  }
+  .marca:hover .tm-title,
+  .entrar:active,
+  .criar-btn:active {
+    transform: none;
+  }
+}
+html[data-reduzir="1"] .marca .tm-title,
+html[data-reduzir="1"] .entrar,
+html[data-reduzir="1"] .criar-btn {
+  transition: none;
+}
+html[data-reduzir="1"] .marca:hover .tm-title,
+html[data-reduzir="1"] .entrar:active,
+html[data-reduzir="1"] .criar-btn:active {
+  transform: none;
 }
 
 .entrar {

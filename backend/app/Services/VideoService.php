@@ -48,6 +48,7 @@ class VideoService
             VideoMapping::THUMBNAIL => $thumbnailPath,
             VideoMapping::EXTERNAL_LINK => $dto->externalLink ?? 0,
             VideoMapping::USUARIO_CADASTROU_ID => $usuarioId,
+            VideoMapping::DATA_VIDEO => $dto->dataVideo,
         ]);
     }
 
@@ -80,7 +81,7 @@ class VideoService
         return $this->videoRepository->atualizar($video, [
             'titulo' => $dto->titulo,
             'descricao' => $dto->descricao,
-        ]);
+        ] + ($dto->informouDataVideo ? ['data_video' => $dto->dataVideo] : []));
     }
 
     public function remover(string $uuid): void

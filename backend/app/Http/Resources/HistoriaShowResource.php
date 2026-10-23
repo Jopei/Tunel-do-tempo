@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -17,10 +18,18 @@ class HistoriaShowResource extends JsonResource
             'data_historia' => $this->data_historia,
             'tipo_historia' => $this->tipo?->nome,
 
+            'capa_url' => HistoriaResumoResource::capaUrl($this->resource),
+            'favoritos_count' => (int) ($this->favoritos_count ?? 0),
+
             'usuarios' => $this->usuarios->map(fn($u) => [
                 'uuid' => $u->uuid,
                 'nome' => $u->nome,
+                'slug' => $u->slug,
+                'foto_url' => MembroPublicoResource::fotoUrl($u),
             ]),
+
+            'anterior' => $this->vizinha($this->resource->getAttribute('anterior')),
+            'proxima' => $this->vizinha($this->resource->getAttribute('proxima')),
 
             // Compatibilidade: arrays de uuid (formato original)
             'fotos' => $this->fotos->pluck('uuid'),
@@ -33,6 +42,8 @@ class HistoriaShowResource extends JsonResource
                 'url' => route('api.fotos.show', $f->uuid),
                 'titulo' => $f->titulo,
                 'descricao' => $f->descricao,
+                'data_foto' => $f->data_foto?->toDateString(),
+                'thumbnail_url' => $f->thumbnail_path ? asset('storage/' . $f->thumbnail_path) : null,
             ])->values(),
             'videos_midia' => $this->videos->map(fn($v) => [
                 'uuid' => $v->uuid,
@@ -49,5 +60,14 @@ class HistoriaShowResource extends JsonResource
             'lembrancas_count' => (int) ($this->lembrancas_count ?? 0),
             'favoritado' => (bool) ($this->favoritado ?? false),
         ];
+    }
+
+    private function vizinha($h): ?array
+    {
+        return $h ? [
+            'uuid' => $h->uuid,
+            'titulo' => $h->titulo,
+            'data_historia' => $h->data_historia ? Carbon::parse($h->data_historia)->toDateString() : null,
+        ] : null;
     }
 }

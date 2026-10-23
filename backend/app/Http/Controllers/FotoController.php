@@ -8,7 +8,9 @@ use App\DTO\FotoIndexDTO;
 use App\DTO\FotoPerfilCreateDTO;
 use App\DTO\FotoUpdateDTO;
 use App\Http\Requests\FotoPerfilStoreRequest;
+use App\Http\Requests\FotoLoteExcluirRequest;
 use App\Http\Requests\FotoStoreRequest;
+use App\Repositories\FotoRepository;
 use App\Http\Requests\FotoUpdateRequest;
 use App\Http\Requests\FotoUsuarioSyncRequest;
 use App\Http\Resources\FotoResource;
@@ -16,9 +18,11 @@ use App\Models\Foto;
 use App\Mapping\FotoMapping;
 use App\Services\FotoService;
 use DomainException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\JsonResponse;
 use App\Http\Requests\FotoIndexRequest;
+use Illuminate\Http\Request;
 use Throwable;
 
 class FotoController extends Controller
@@ -58,6 +62,7 @@ class FotoController extends Controller
                 titulo: $request->titulo,
                 descricao: $request->descricao,
                 criadoEm: $request->criado_em,
+                dataFoto: $request->input('data_foto'),
             );
 
             $foto = $this->fotoService->criarFoto($dto);
@@ -67,6 +72,8 @@ class FotoController extends Controller
                 'uuid' => $foto->uuid,
             ], 201);
         } catch (Throwable $e) {
+            report($e);
+
             return response()->json([
                 'message' => 'Erro ao criar foto',
             ], 500);
@@ -91,6 +98,8 @@ class FotoController extends Controller
                 'uuid' => $foto->uuid,
             ], 201);
         } catch (Throwable $e) {
+            report($e);
+
             return response()->json([
                 'message' => 'Erro ao criar foto de perfil.',
             ], 500);
@@ -124,7 +133,11 @@ class FotoController extends Controller
             q: $request->input('q'),
             ano: $request->filled('ano') ? (int) $request->input('ano') : null,
             usuarioUuid: $request->input('usuario_uuid'),
-            ordem: $request->input('ordem', 'recentes')
+            ordem: $request->input('ordem', 'recentes'),
+            agrupar: $request->input('agrupar'),
+            albumUuid: $request->input('album_uuid'),
+            de: $request->input('de'),
+            ate: $request->input('ate'),
         );
 
         $fotos = $this->fotoIndexAction->executar($dto);
@@ -132,9 +145,64 @@ class FotoController extends Controller
         return FotoResource::collection($fotos);
     }
 
-    public function details(string $uuid)
+    public function linhaDoTempo(FotoIndexRequest $request, FotoRepository $fotos): JsonResponse
+    {
+        $dto = new FotoIndexDTO(
+            q: $request->input('q'),
+            ano: $request->filled('ano') ? (int) $request->input('ano') : null,
+            usuarioUuid: $request->input('usuario_uuid'),
+            albumUuid: $request->input('album_uuid'),
+            de: $request->input('de'),
+            ate: $request->input('ate'),
+        );
+
+        return response()->json($fotos->linhaDoTempo($dto));
+    }
+
+    /** Publico: so agregados (ano => total), como a linha do tempo. */
+    public function anos(FotoRepository $fotos): JsonResponse
+    {
+        return response()->json($fotos->anos());
+    }
+
+    /** Login: fotos do mesmo dia/mes de hoje em anos anteriores, agrupadas por ano (desc). */
+    public function nesteDia(Request $request, FotoRepository $fotos): JsonResponse
+    {
+        $dados = $request->validate(['limite' => ['nullable', 'integer', 'between:1,60']]);
+
+        $grupos = $fotos->nesteDia((int) ($dados['limite'] ?? 24))
+            ->groupBy('ano_ref')
+            ->map(fn ($itens, $ano) => [
+                'ano' => (int) $ano,
+                'fotos' => FotoResource::collection($itens)->resolve($request),
+            ])
+            ->sortByDesc('ano')
+            ->values();
+
+        return response()->json($grupos);
+    }
+
+    public function loteExcluir(FotoLoteExcluirRequest $request): JsonResponse
+    {
+        $resultado = $this->fotoService->removerLote($request->input('uuids'));
+
+        return response()->json([
+            'message' => $resultado['excluidas'] . ' foto(s) removida(s).',
+            'excluidas' => $resultado['excluidas'],
+            'nao_encontradas' => $resultado['nao_encontradas'],
+        ]);
+    }
+
+    public function details(string $uuid, FotoRepository $fotos)
     {
         $foto = $this->fotoService->buscarPorUuid($uuid);
+
+        $foto->load(array_merge(['albuns', 'historias.tipo'], $fotos->relacoesLogado()));
+
+        $capas = $fotos->capasDeHistorias($foto->historias->pluck('id')->all());
+        foreach ($foto->historias as $historia) {
+            $historia->setAttribute('capa_url', $capas[$historia->id] ?? null);
+        }
 
         return new FotoResource($foto);
     }
@@ -146,7 +214,9 @@ class FotoController extends Controller
             $dto = new FotoUpdateDTO(
                 uuid: $uuid,
                 titulo: $request->titulo,
-                descricao: $request->descricao
+                descricao: $request->descricao,
+                dataFoto: $request->input('data_foto'),
+                informouDataFoto: $request->exists('data_foto'),
             );
 
             $this->fotoService->editarFoto($dto);
@@ -154,9 +224,13 @@ class FotoController extends Controller
             return response()->json([
                 'message' => 'Foto atualizada com sucesso.'
             ]);
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['message' => 'Foto não encontrada.'], 404);
         } catch (Throwable $e) {
+            report($e);
+
             return response()->json([
-                'message' => 'Erro ao atualizar foto.' . $e->getMessage()
+                'message' => 'Erro ao atualizar foto.'
             ], 500);
         }
     }
@@ -170,6 +244,9 @@ class FotoController extends Controller
             return response()->json([
                 'message' => 'Foto removida com sucesso.'
             ], 200);
+        } catch (ModelNotFoundException $e) {
+
+            return response()->json(['message' => 'Foto não encontrada.'], 404);
         } catch (DomainException $e) {
 
             return response()->json([

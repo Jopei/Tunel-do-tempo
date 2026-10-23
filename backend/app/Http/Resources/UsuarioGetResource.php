@@ -10,9 +10,7 @@ class UsuarioGetResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $fotoPerfil = $this->fotos
-            ->where('tipo.nome', TipoImagemEnum::PERFIL->value)
-            ->first();
+        $fotoPerfil = $this->fotoPerfilAtual();
 
         $logado = $request->user();
         $veSensivel = $logado && (
@@ -32,7 +30,7 @@ class UsuarioGetResource extends JsonResource
             ],
             'foto' => $fotoPerfil ? [
                 'uuid' => $fotoPerfil->uuid,
-                'url' => config('app.url') . '/api/fotos/' . $fotoPerfil->uuid,
+                'url' => $this->fotoPerfilUrl(),
             ] : null,
         ];
     }

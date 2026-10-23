@@ -17,7 +17,7 @@ class UsuarioStoreRequest extends FormRequest
             'nome' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:usuarios,email'],
             'senha' => ['required', 'string', 'min:8'],
-            'tipo_usuario_id' => ['required', 'integer', 'exists:tipo_usuarios,id'],
+            // 'tipo_usuario_id' do cliente e ignorado: o papel e definido no servidor (CriarUsuarioAction).
             'aniversario' => ['nullable', 'date'],
             'telefone' => ['nullable', 'string', 'max:20'],
             'descricao' => ['nullable', 'string'],
@@ -34,7 +34,6 @@ class UsuarioStoreRequest extends FormRequest
             'email.required' => 'Email é obrigatório.',
             'email.unique' => 'Email já cadastrado.',
             'senha.required' => 'Senha é obrigatória.',
-            'tipo_usuario_id.required' => 'Tipo de usuário é obrigatório.',
         ];
     }
 }
