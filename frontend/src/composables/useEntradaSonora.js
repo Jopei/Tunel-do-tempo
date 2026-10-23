@@ -1,4 +1,5 @@
 import { ref } from "vue";
+import { usePlayerStore } from "@/stores/player";
 
 /*
  * Efeito sonoro de entrada (Web Audio sintetizado: sem arquivos, sem direitos autorais).
@@ -282,8 +283,12 @@ export function useEntradaSonora({ ocupado = () => false } = {}) {
   /** Interrompe e libera o AudioContext (unmount ou som desligado). */
   function parar() {
     fechado = true;
+    desregistrar();
     fechar();
   }
+
+  // se o player global começar a tocar durante o efeito, corta o efeito
+  const desregistrar = usePlayerStore().registrarMidiaLocal(fechar);
 
   return { tocar, parar };
 }

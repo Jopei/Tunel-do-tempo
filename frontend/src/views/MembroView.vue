@@ -66,6 +66,11 @@ async function carregar() {
   erro.value = false;
   status.value = null;
 
+  if (entrada.value?.redirect) {
+    router.replace(entrada.value.redirect);
+    return;
+  }
+
   try {
     lista.value = await listarMembrosPublicos();
   } catch {
@@ -80,11 +85,6 @@ async function carregar() {
       router.replace({ name: "membro", params: { slug: m.slug } });
       return;
     }
-  }
-
-  if (entrada.value?.redirect) {
-    router.replace(entrada.value.redirect);
-    return;
   }
 
   resolverComponente();

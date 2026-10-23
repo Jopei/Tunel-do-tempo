@@ -5,8 +5,9 @@
       type="button"
       class="tm-carrossel__seta tm-carrossel__seta--esq"
       :aria-label="rotuloAnterior"
-      :disabled="!podeEsq"
-      @click="rolar(-1)"
+      :aria-disabled="!podeEsq"
+      :class="{ 'tm-carrossel__seta--off': !podeEsq }"
+      @click="podeEsq && rolar(-1)"
     >
       <v-icon size="24" aria-hidden="true">mdi-chevron-left</v-icon>
     </button>
@@ -19,8 +20,9 @@
       type="button"
       class="tm-carrossel__seta tm-carrossel__seta--dir"
       :aria-label="rotuloProximo"
-      :disabled="!podeDir"
-      @click="rolar(1)"
+      :aria-disabled="!podeDir"
+      :class="{ 'tm-carrossel__seta--off': !podeDir }"
+      @click="podeDir && rolar(1)"
     >
       <v-icon size="24" aria-hidden="true">mdi-chevron-right</v-icon>
     </button>
@@ -83,8 +85,6 @@ defineExpose({ atualizar, rolar });
 .tm-carrossel__tira {
   scrollbar-width: none;
   -ms-overflow-style: none;
-  user-select: none;
-  -webkit-user-select: none;
 }
 .tm-carrossel__tira::-webkit-scrollbar {
   display: none;
@@ -129,6 +129,8 @@ defineExpose({ atualizar, rolar });
   color: var(--tm-gold-text);
   box-shadow: var(--tm-shadow-sm);
   cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
   transition: opacity var(--tm-dur-fast) var(--tm-ease), background var(--tm-dur-fast) var(--tm-ease);
 }
 .tm-carrossel__seta--esq {
@@ -137,10 +139,10 @@ defineExpose({ atualizar, rolar });
 .tm-carrossel__seta--dir {
   right: 4px;
 }
-.tm-carrossel__seta:hover:not(:disabled) {
+.tm-carrossel__seta:hover:not(.tm-carrossel__seta--off) {
   background: var(--tm-paper-2);
 }
-.tm-carrossel__seta:disabled {
+.tm-carrossel__seta--off:not(:focus-visible) {
   opacity: 0;
   pointer-events: none;
 }

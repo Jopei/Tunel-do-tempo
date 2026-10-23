@@ -94,18 +94,23 @@ export function iniciarParticulas(contenedor, canvas, opcoes = {}) {
 
   function aoVisibilidade() {
     if (document.hidden) parar();
-    else iniciar();
+    else if (visivel) iniciar();
   }
 
+  let visivel = true; // só muda quando pausarForaDaTela está ligado
   const observador = new ResizeObserver(() => {
     dimensionar();
-    iniciar();
+    if (visivel) iniciar();
   });
   observador.observe(contenedor);
   document.addEventListener("visibilitychange", aoVisibilidade);
 
   const vigia = opcoes.pausarForaDaTela && "IntersectionObserver" in window
-    ? new IntersectionObserver(([e]) => (e.isIntersecting ? iniciar() : parar()))
+    ? new IntersectionObserver(([e]) => {
+        visivel = e.isIntersecting;
+        if (visivel) iniciar();
+        else parar();
+      })
     : null;
   vigia?.observe(canvas);
 

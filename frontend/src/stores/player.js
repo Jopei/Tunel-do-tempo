@@ -15,6 +15,9 @@ const getAudio = () => {
   return audio;
 };
 
+// Mídias locais (trilha de página, efeito de entrada): pausadas quando o player global começa a tocar.
+const midiasLocais = new Set();
+
 const clonar = (f) => ({
   uuid: f.uuid,
   titulo: f.titulo,
@@ -210,6 +213,7 @@ export const usePlayerStore = defineStore("player", () => {
   function ligarEventos() {
     const a = getAudio();
     a.addEventListener("play", () => {
+      midiasLocais.forEach((pausa) => pausa());
       tocando.value = true;
       queriaTocar = true;
       pausadoPorOutro.value = false;
@@ -437,6 +441,12 @@ export const usePlayerStore = defineStore("player", () => {
     pausadoPorOutro.value = true;
   }
 
+  /** Registra uma mídia local; pausa() é chamada quando o player global começa a tocar. Devolve o cancelamento. */
+  function registrarMidiaLocal(pausa) {
+    midiasLocais.add(pausa);
+    return () => midiasLocais.delete(pausa);
+  }
+
   /* ---------- Media Session ---------- */
   function atualizarMediaSession() {
     if (!("mediaSession" in navigator)) return;
@@ -500,6 +510,6 @@ export const usePlayerStore = defineStore("player", () => {
     pausadoPorOutro, anuncio, atual, temFila, uuidAtual, duracaoTotal,
     iniciar, tocar, pausar, alternar, proxima, anterior, buscar, definirVolume, alternarMudo, ciclarRepetir,
     alternarAleatorio, tocarLista, adicionarAFila, tocarAProxima, irPara, remover, moverNaFila, limparFila, fechar,
-    pausarPorMidia,
+    pausarPorMidia, registrarMidiaLocal,
   };
 });

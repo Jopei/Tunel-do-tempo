@@ -370,6 +370,7 @@ function configurarObservadores(cena) {
 
 function iniciarCena(cena, canvas) {
   pararParticulas();
+  pararCena();
   pararParticulas = iniciarParticulas(cena, canvas, {
     cores: ["#050d2b", "#050d2b", "#050d2b", "#6fd3ff", "#6fd3ff", "#061a5c"],
     densidade: 1,
@@ -433,8 +434,9 @@ function criarAudio() {
     }
     irParaFaixa(prox, quisTocar);
   });
-  audio.addEventListener("pause", () => {
-    if (!trocandoSrc && !audio.ended) tocando.value = false;
+  const el = audio; // captura: o handler pode disparar após o unmount (audio = null)
+  el.addEventListener("pause", () => {
+    if (!trocandoSrc && !el.ended) tocando.value = false;
   });
   audio.addEventListener("ended", () => proxima(true));
 }
@@ -452,12 +454,17 @@ function tocarAtual() {
       if (e?.name === "AbortError") return; // troca de faixa interrompeu o play
       // NotAllowedError = gesto/permissão; o resto = arquivo ausente ou ilegível.
       if (e?.name === "NotAllowedError") tocando.value = false;
-      else if (!audio.error) {
+      else if (!audio?.error) {
         tocando.value = false;
         indisponiveis.value[indiceFaixa.value] = true;
       }
     });
 }
+
+// um som por vez: o player global pausa a trilha ao começar a tocar
+const desregistrarMidia = usePlayerStore().registrarMidiaLocal(() => {
+  if (audio && tocando.value) audio.pause();
+});
 
 function irParaFaixa(i, tocar) {
   indiceFaixa.value = i;
@@ -527,8 +534,8 @@ async function verificarArquivos() {
 }
 
 function aoMudarVisibilidade() {
+  // o áudio segue tocando com a aba oculta (música de fundo); só animações/rAF pausam
   pausadoAba = document.visibilityState === "hidden";
-  if (pausadoAba && estadoMusica.value === "tocando") audio?.pause();
   atualizarPausa();
 }
 
@@ -551,11 +558,13 @@ onBeforeUnmount(() => {
   cancelAnimationFrame(rafBatida);
   rafBatida = 0;
   document.removeEventListener("visibilitychange", aoMudarVisibilidade);
-  if (audio) {
-    audio.pause();
-    audio.removeAttribute("src");
-    audio.load();
-    audio = null;
+  desregistrarMidia();
+  const a = audio;
+  audio = null;
+  if (a) {
+    a.pause();
+    a.removeAttribute("src");
+    a.load();
   }
   if (contextoAudio) {
     contextoAudio.close?.().catch?.(() => {});

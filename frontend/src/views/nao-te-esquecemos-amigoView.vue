@@ -76,25 +76,26 @@ function alternarAudio() {
     .catch(() => (tocando.value = false));
 }
 
-function aoMudarVisibilidade() {
-  if (document.visibilityState === "hidden" && tocando.value) {
-    audio?.pause();
-    tocando.value = false;
-  }
+// um som por vez: o player global pausa esta trilha ao começar a tocar
+function pausarLocal() {
+  if (!audio) return;
+  audio.pause();
+  tocando.value = false;
 }
+const desregistrar = usePlayerStore().registrarMidiaLocal(pausarLocal);
 
 onMounted(() => {
   finalizarTransicao();
-  document.addEventListener("visibilitychange", aoMudarVisibilidade);
   pararParticulas = iniciarParticulas(particulasRef.value, canvasRef.value);
 });
 
 onBeforeUnmount(() => {
-  document.removeEventListener("visibilitychange", aoMudarVisibilidade);
-  if (audio) {
-    audio.pause();
-    audio.src = "";
-    audio = null;
+  desregistrar();
+  const a = audio;
+  audio = null;
+  if (a) {
+    a.pause();
+    a.src = "";
   }
   pararParticulas();
 });
