@@ -18,7 +18,7 @@ export const registry = {
   "joao-pedro": {
     componente: () => import("./paginas/JoaoPedro.vue"),
     simbolo: "/membros/joao-pedro/simbolo.svg",
-    cores: { cor: "#C8101A", texto: "#8E0A12", hero: "linear-gradient(160deg, #C8101A, #6E060C)" },
+    cores: { cor: "#0F4BD8", texto: "#0A2F8F", hero: "linear-gradient(160deg, #0F4BD8, #061A5C)" },
   },
   // "ze-paulo": {
   //   componente: () => import("./paginas/ZePaulo.vue"),
